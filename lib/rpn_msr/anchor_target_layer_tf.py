@@ -65,6 +65,11 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [
     # map of shape (..., H, W)
     height, width = rpn_cls_score.shape[1:3]
 
+    # #chris
+    # print height
+    # print width
+    # #chris
+
     if DEBUG:
         print 'AnchorTargetLayer: height', height, 'width', width
         print ''
@@ -111,6 +116,12 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [
     # label: 1 is positive, 0 is negative, -1 is dont care
     labels = np.empty((len(inds_inside), ), dtype=np.float32)
     labels.fill(-1)
+
+    # #chris
+    # print 'label shape'
+    # print labels.shape
+    print labels
+    # #chris
 
     # overlaps between the anchors and the gt boxes
     # overlaps (ex, gt)

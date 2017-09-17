@@ -44,13 +44,12 @@ class VGGnet_train(Network):
              .max_pool(2, 2, 2, 2, padding='VALID', name='pool3')
              .conv(3, 3, 512, 1, 1, name='conv4_1')
              .conv(3, 3, 512, 1, 1, name='conv4_2')
-             .conv(3, 3, 512, 1, 1, name='conv4_3'))
-             
-             # #chris 
-             # #I comment that
-             # .max_pool(2, 2, 2, 2, padding='VALID', name='pool4')
-             # .conv(3, 3, 512, 1, 1, name='conv5_1')
-             # .conv(3, 3, 512, 1, 1, name='conv5_2')
+             .conv(3, 3, 512, 1, 1, name='conv4_3')
+             .max_pool(2, 2, 2, 2, padding='VALID', name='pool4')
+             .conv(3, 3, 512, 1, 1, name='conv5_1')
+             .conv(3, 3, 512, 1, 1, name='conv5_2'))
+
+             # #chris comment this
              # .conv(3, 3, 512, 1, 1, name='conv5_3'))
              # #chris
 
@@ -69,11 +68,12 @@ class VGGnet_train(Network):
         (self.feed('rpn1_conv/3x3')
              .conv(1,1,len(anchor_scales)*3*4, 1, 1, padding='VALID', relu = False, name='rpn1_bbox_pred'))
 
-
+        #output postive and negative prob
         #========= RoI Proposal ============
         (self.feed('rpn1_cls_score')
              .reshape_layer(2,name = 'rpn1_cls_score_reshape')
              .softmax(name='rpn1_cls_prob'))
+
 
         (self.feed('rpn1_cls_prob')
              .reshape_layer(len(anchor_scales)*3*2,name = 'rpn1_cls_prob_reshape'))
@@ -85,12 +85,8 @@ class VGGnet_train(Network):
              .proposal_target_layer(n_classes,name = 'roi1-data'))
         #chris
 
-        #chris continue conv here
-        (self.feed('conv4_3')
-            .max_pool(2, 2, 2, 2, padding='VALID', name='pool4')
-            # .roi_pool(14, 14, 1.0/16, name='pool_4')
-            .conv(3, 3, 512, 1, 1, name='conv5_1')
-            .conv(3, 3, 512, 1, 1, name='conv5_2')
+        #chris continue conv here 5_2 -> 5_3
+        (self.feed('conv5_2')
             .conv(3, 3, 512, 1, 1, name='conv5_3'))
         #chris
         
