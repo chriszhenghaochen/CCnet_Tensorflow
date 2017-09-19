@@ -5,7 +5,7 @@ import roi_pooling_layer.roi_pooling_op_grad
 from rpn_msr.proposal_layer_tf import proposal_layer as proposal_layer_py
 from rpn_msr.anchor_target_layer_tf import anchor_target_layer as anchor_target_layer_py
 from rpn_msr.proposal_target_layer_tf import proposal_target_layer as proposal_target_layer_py
-
+from rpn_msr.reject_layer import reject_layer as reject_layer_py
 
 
 DEFAULT_PADDING = 'SAME'
@@ -169,16 +169,28 @@ class Network(object):
 
         with tf.variable_scope(name) as scope:
 
-            rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights = tf.py_func(anchor_target_layer_py,[input[0],input[1],input[2],input[3], _feat_stride, anchor_scales],[tf.float32,tf.float32,tf.float32,tf.float32])
+            rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights = tf.py_func(anchor_target_layer_py,[input[0],input[1],input[2],input[3], _feat_stride, anchor_scales],[tf.float32, tf.float32,tf.float32,tf.float32])
 
             rpn_labels = tf.convert_to_tensor(tf.cast(rpn_labels,tf.int32), name = 'rpn_labels')
             rpn_bbox_targets = tf.convert_to_tensor(rpn_bbox_targets, name = 'rpn_bbox_targets')
             rpn_bbox_inside_weights = tf.convert_to_tensor(rpn_bbox_inside_weights , name = 'rpn_bbox_inside_weights')
             rpn_bbox_outside_weights = tf.convert_to_tensor(rpn_bbox_outside_weights , name = 'rpn_bbox_outside_weights')
+            #all_anchors = tf.convert_to_tensor(all_anchors, name = 'all_anchors')
+
+            return rpn_labels, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights #, all_anchors
 
 
-            return rpn_labels, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights
+    @layer
+    def reject_layer(self, input, _feat_stride, anchor_scales, name):
+        if isinstance(input[0], tuple):
+            input[0] = input[0][0]
 
+        with tf.variable_scope(name) as scope:
+
+            rpn_labels = tf.py_func(reject_layer_py,[input[0],input[1], _feat_stride, anchor_scales],[tf.float32])
+            rpn_labels = tf.convert_to_tensor(tf.cast(rpn_labels,tf.int32), name = 'rpn_labels')
+
+            return rpn_labels
 
     @layer
     def proposal_target_layer(self, input, classes, name):

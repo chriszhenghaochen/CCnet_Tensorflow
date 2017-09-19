@@ -15,6 +15,9 @@ from utils.cython_bbox import bbox_overlaps
 from fast_rcnn.bbox_transform import bbox_transform
 import pdb
 
+
+#import tensorflow as tf
+
 DEBUG = False
 
 def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [16,], anchor_scales = [4 ,8, 16, 32]):
@@ -22,6 +25,15 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [
     Assign anchors to ground-truth targets. Produces anchor classification
     labels and bounding-box regression targets.
     """
+
+
+    # input_shape = tf.shape(rpn_cls_score)
+    # if name == 'rpn_cls_prob_reshape':
+    #     return tf.transpose(tf.reshape(tf.transpose(input,[0,3,1,2]),[input_shape[0],
+    #             int(d),tf.cast(tf.cast(input_shape[1],tf.float32)/tf.cast(d,tf.float32)*tf.cast(input_shape[3],tf.float32),tf.int32),input_shape[2]]),[0,2,3,1],name=name)
+
+
+
     _anchors = generate_anchors(scales=np.array(anchor_scales))
     _num_anchors = _anchors.shape[0]
 
@@ -55,9 +67,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [
     # filter out-of-image anchors
     # measure GT overlap
 
-    # #chris
-    # print rpn_cls_score
-    # #chris
+
     
     assert rpn_cls_score.shape[0] == 1, \
         'Only single item batches are supported'
@@ -96,6 +106,19 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [
     all_anchors = all_anchors.reshape((K * A, 4))
     total_anchors = int(K * A)
 
+    # #chris
+    # print 'All Anchor'
+    # print all_anchors.shape
+    # print all_anchors
+    # #chris
+
+    # #chris
+    # print 'Score'
+    # print rpn_cls_score.shape
+    # print rpn_cls_score
+    # #chris
+
+
     # only keep anchors inside the image
     inds_inside = np.where(
         (all_anchors[:, 0] >= -_allowed_border) &
@@ -104,12 +127,25 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [
         (all_anchors[:, 3] < im_info[0] + _allowed_border)    # height
     )[0]
 
+    # #chris
+    # print 'inds_inside'
+    # print inds_inside
+    # #chris
+
     if DEBUG:
         print 'total_anchors', total_anchors
         print 'inds_inside', len(inds_inside)
 
     # keep only inside anchors
     anchors = all_anchors[inds_inside, :]
+
+    # #chris
+    # print 'Anchor'
+    # print anchors.shape
+    # print anchors
+    # #chris
+
+
     if DEBUG:
         print 'anchors.shape', anchors.shape
 
@@ -120,7 +156,12 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [
     # #chris
     # print 'label shape'
     # print labels.shape
-    print labels
+    # print 'labels'
+    # print labels
+    # print 'anchors'
+    # print anchors
+    # print anchors.shape
+
     # #chris
 
     # overlaps between the anchors and the gt boxes
@@ -157,6 +198,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [
             fg_inds, size=(len(fg_inds) - num_fg), replace=False)
         labels[disable_inds] = -1
 
+
     # subsample negative labels if we have too many
     num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
     bg_inds = np.where(labels == 0)[0]
@@ -166,6 +208,26 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [
         labels[disable_inds] = -1
         #print "was %s inds, disabling %s, now %s inds" % (
             #len(bg_inds), len(disable_inds), np.sum(labels == 0))
+
+
+    #####################
+
+    
+    # #chris    
+    # print 'labels'
+    # #print labels
+    # print labels.shape
+
+    # print 'score'
+    # #print rpn_cls_score
+    # print rpn_cls_score.shape
+    # #chris
+
+
+
+    #####################
+
+
 
     bbox_targets = np.zeros((len(inds_inside), 4), dtype=np.float32)
     bbox_targets = _compute_targets(anchors, gt_boxes[argmax_overlaps, :])
@@ -251,7 +313,16 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [
     # #chris
     # print rpn_labels
     # #chris
-    return rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights
+
+    # #chris
+    # print 'labels'
+    # print labels.shape
+    # print 'target'
+    # print rpn_bbox_targets.shape
+
+    # #chris
+
+    return rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights #,all_anchors.astype(np.float)
 
 
 

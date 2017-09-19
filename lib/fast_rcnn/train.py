@@ -41,6 +41,31 @@ class SolverWrapper(object):
         # For checkpoint
         self.saver = saver
 
+
+    #chris 
+    #this is for reject:
+
+    def passSample(self, scores, inds = None):
+        new_inds = tf.where(tf.less(scores[:,0], scores[:,1]))
+
+        if inds == None:
+        # print new_inds
+        # inds = tf.concat([inds, new_inds], axis = 0)
+            return new_inds
+
+        inds = tf.concat([inds, new_inds], axis = 0)
+        
+        return inds
+
+
+    def reject(self, scores):
+        return tf.gather(scores, tf.where(tf.less(scores[:,0], scores[:,1])))[:,0,:]
+
+
+
+    #chris
+
+
     def snapshot(self, sess, iter):
         """Take a snapshot of the network after unnormalizing the learned
         bounding-box regression weights. This enables easy use at test-time.
@@ -110,9 +135,19 @@ class SolverWrapper(object):
         # classification loss
         rpn1_cls_score = tf.reshape(self.net.get_output('rpn1_cls_score_reshape'),[-1,2])
         rpn1_label = tf.reshape(self.net.get_output('rpn1-data')[0],[-1])
+
+        #chris
+        #rpn reject step-1 negative sample
+        rpn1_pass_inds = self.passSample(rpn1_cls_score)
+        #chris
+
+
+        #reject step-2 0.3 <IOU <0.7
         rpn1_cls_score = tf.reshape(tf.gather(rpn1_cls_score,tf.where(tf.not_equal(rpn1_label,-1))),[-1,2])
         rpn1_label = tf.reshape(tf.gather(rpn1_label,tf.where(tf.not_equal(rpn1_label,-1))),[-1])
         rpn1_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn1_cls_score, labels=rpn1_label))
+
+
 
         # # bounding box regression L1 loss
         # rpn1_bbox_pred = self.net.get_output('rpn1_bbox_pred')
@@ -129,10 +164,26 @@ class SolverWrapper(object):
 
         # RPN
         # classification loss
-        rpn_cls_score = tf.reshape(self.net.get_output('rpn_cls_score_reshape'),[-1,2])
-        rpn_label = tf.reshape(self.net.get_output('rpn-data')[0],[-1])
-        rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score,tf.where(tf.not_equal(rpn_label,-1))),[-1,2])
-        rpn_label = tf.reshape(tf.gather(rpn_label,tf.where(tf.not_equal(rpn_label,-1))),[-1])
+        rpn_cls_score1 = tf.reshape(self.net.get_output('rpn_cls_score_reshape'),[-1,2])
+        rpn_label1 = tf.reshape(self.net.get_output('rpn-data')[0],[-1])
+
+        #chris 
+        #reject here:
+        rpn_cls_score2 = tf.reshape(tf.gather(rpn_cls_score1, tf.reshape(rpn1_pass_inds,[-1])),[-1,2])
+        rpn_label2 = tf.reshape(tf.gather(rpn_label1, tf.reshape(rpn1_pass_inds,[-1])),[-1])
+        #chris
+
+
+        rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score2,tf.where(tf.not_equal(rpn_label2,-1))),[-1,2])
+        rpn_label = tf.reshape(tf.gather(rpn_label2,tf.where(tf.not_equal(rpn_label2,-1))),[-1])
+
+        #chris 
+        # reject will happen here:
+        # sub_ind = self.reject(rpn1_cls_score)
+        # rpn_label = rpn1_label[sub_ind]
+        # rpn_cls_score = rpn1_label[sub_ind]
+        # chris
+
         rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
 
         # bounding box regression L1 loss
@@ -227,33 +278,77 @@ class SolverWrapper(object):
             #                                                                                     run_metadata=run_metadata)
             # #chris
 
+
+
+            #chris reject
+
+
+            #chris
+
+
             #chris 
             #new BP, only output rpn1_cls
             rpn1_loss_cls_value, rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn1_cross_entropy, rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
                                                                                                 feed_dict=feed_dict,
                                                                                                 options=run_options,
                                                                                                 run_metadata=run_metadata)
-            #chris
+            # #chris -- Debug
            
-            a,b,c,d = sess.run([rpn1_cls_score, self.net.get_output('rpn1-data'), self.net.get_output('rpn_cls_prob'), self.net.get_output('rpn_cls_prob_reshape')],
-                                                                        feed_dict=feed_dict,
-                                                                        options=run_options,
-                                                                        run_metadata=run_metadata)                    
+            # a,b,c,d,e = sess.run([rpn1_cls_score, rpn1_label, self.net.get_output('rpn_cls_prob'), self.net.get_output('rpn_cls_prob_reshape'), self.reject(rpn1_cls_score)],
+            #                                                             feed_dict=feed_dict,
+            #                                                             options=run_options,
+            #                                                             run_metadata=run_metadata)                    
             # print 'rpn score'
             # print a
             # print a.shape
             # print 'rpn label'
             # print b
             # print b.shape
-            # print 'softmax result'
-            # print c
-            # print 'softmax result'
-            # print d.shape
+            # # print 'softmax result'
+            # # print c
+            # # print c.shape
+            # print 'after reject'
+            # print e.shape
+            # print e
+            # #chris
+
+
+            # #chris -- Debug
+           
+            # a,b,c,d = sess.run([rpn_cls_score1,rpn_cls_score2,rpn_cls_score, rpn1_pass_inds],
+            #                                                             feed_dict=feed_dict,
+            #                                                             options=run_options,
+            #                                                          run_metadata=run_metadata)                    
+            # print 'rpn score 1'
+            # # print a
+            # print a.shape
+            # print 'rpn score 2'
+            # # print b
+            # print b.shape
+            # print 'rpn score 3'
+            # # print c
+            # print c.shape
+            # print 'pass index'
             # print d
+            # #print d.shape
+            # #chris
+
+            #chris -- print reject sample number
+            a,b = sess.run([rpn_cls_score1, rpn_cls_score2],
+                                            feed_dict=feed_dict,
+                                            options=run_options,
+                                            run_metadata=run_metadata)  
+
+
+            num_reject = a.shape[0] - b.shape[0]
+
+            print 'RPN conv5_2 -> RPN con5_3, Reject %d Neative Samples'%\
+            (num_reject)
             #chris
 
-            #chris
 
+            print '\n'
+            print '\n'
             timer.toc()
 
             if cfg.TRAIN.DEBUG_TIMELINE:
@@ -352,3 +447,8 @@ def train_net(network, imdb, roidb, output_dir, pretrained_model=None, max_iters
         print 'Solving...'
         sw.train_model(sess, max_iters)
         print 'done solving'
+
+
+
+
+

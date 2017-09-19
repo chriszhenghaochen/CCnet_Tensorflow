@@ -56,7 +56,7 @@ class VGGnet_train(Network):
         #chris 
         #add new RPN here
         #========= RPN 1 ============
-        (self.feed('conv4_3')
+        (self.feed('conv5_2')
              .conv(3,3,512,1,1,name='rpn1_conv/3x3')
              .conv(1,1,len(anchor_scales)*3*2 ,1 , 1, padding='VALID', relu = False, name='rpn1_cls_score'))
 
@@ -73,6 +73,11 @@ class VGGnet_train(Network):
         (self.feed('rpn1_cls_score')
              .reshape_layer(2,name = 'rpn1_cls_score_reshape')
              .softmax(name='rpn1_cls_prob'))
+
+
+        #chris
+        #reject layer
+        #chris 
 
 
         (self.feed('rpn1_cls_prob')
