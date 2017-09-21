@@ -75,20 +75,22 @@ class VGGnet_train(Network):
              .softmax(name='rpn1_cls_prob'))
 
 
-        #chris
-        #reject layer
-        #chris 
+        # this is for Fast RCNN, not got RPN traininig
+        # #chris
+        # #reject layer
+        # #chris 
 
 
-        (self.feed('rpn1_cls_prob')
-             .reshape_layer(len(anchor_scales)*3*2,name = 'rpn1_cls_prob_reshape'))
+        # (self.feed('rpn1_cls_prob')
+        #      .reshape_layer(len(anchor_scales)*3*2,name = 'rpn1_cls_prob_reshape'))
 
-        (self.feed('rpn1_cls_prob_reshape','rpn1_bbox_pred','im_info')
-             .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn1_rois'))
+        # (self.feed('rpn1_cls_prob_reshape','rpn1_bbox_pred','im_info')
+        #      .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn1_rois'))
 
-        (self.feed('rpn1_rois','gt_boxes')
-             .proposal_target_layer(n_classes,name = 'roi1-data'))
-        #chris
+        # (self.feed('rpn1_rois','gt_boxes')
+        #      .proposal_target_layer(n_classes,name = 'roi1-data'))
+        # #chris
+
 
         #chris continue conv here 5_2 -> 5_3
         (self.feed('conv5_2')
