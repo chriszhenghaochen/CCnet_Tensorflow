@@ -148,7 +148,7 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
 
     #--------------------------chris: only for testing reject!!-----------------------------------#
-    if cfg_key == 'TEST' and rpn_bbox_pred != None:
+    if pre_rpn_cls_prob_reshape != None:
         pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob_reshape,[0,3,1,2])
         pre_scores = pre_rpn_cls_prob_reshape[:, _num_anchors:, :, :]
         pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
