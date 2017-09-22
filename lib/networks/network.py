@@ -159,7 +159,7 @@ class Network(object):
     def proposal_layer(self, input, _feat_stride, anchor_scales, cfg_key, name):
         if isinstance(input[0], tuple):
             input[0] = input[0][0]
-        return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2], cfg_key, _feat_stride, anchor_scales], [tf.float32]),[-1,5],name =name)
+        return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2], input[3], cfg_key, _feat_stride, anchor_scales], [tf.float32]),[-1,5],name =name)
 
 
     @layer

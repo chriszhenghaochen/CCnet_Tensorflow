@@ -50,6 +50,12 @@ class VGGnet_test(Network):
              .reshape_layer(2,name = 'rpn1_cls_score_reshape')
              .softmax(name='rpn1_cls_prob'))
 
+        #chris
+        #this is only for reject
+        (self.feed('rpn1_cls_prob')
+             .reshape_layer(len(anchor_scales)*3*2,name = 'rpn1_cls_prob_reshape'))
+        #chris
+
         #chris  
 
         #chris continue conv here 5_2 -> 5_3
@@ -73,7 +79,7 @@ class VGGnet_test(Network):
         (self.feed('rpn_cls_prob')
              .reshape_layer(len(anchor_scales)*3*2,name = 'rpn_cls_prob_reshape'))
 
-        (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info')
+        (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info', 'rpn1_cls_prob_reshape')
              .proposal_layer(_feat_stride, anchor_scales, 'TEST', name = 'rois'))
         
         (self.feed('conv5_3', 'rois')

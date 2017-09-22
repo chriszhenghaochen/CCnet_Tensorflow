@@ -80,9 +80,10 @@ class VGGnet_train(Network):
         # #reject layer
         # #chris 
 
-
-        # (self.feed('rpn1_cls_prob')
-        #      .reshape_layer(len(anchor_scales)*3*2,name = 'rpn1_cls_prob_reshape'))
+        #chris: I leave that just in case, but now it is useless
+        (self.feed('rpn1_cls_prob')
+             .reshape_layer(len(anchor_scales)*3*2,name = 'rpn1_cls_prob_reshape'))
+        #chirs
 
         # (self.feed('rpn1_cls_prob_reshape','rpn1_bbox_pred','im_info')
         #      .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn1_rois'))
@@ -119,7 +120,7 @@ class VGGnet_train(Network):
         (self.feed('rpn_cls_prob')
              .reshape_layer(len(anchor_scales)*3*2,name = 'rpn_cls_prob_reshape'))
 
-        (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info')
+        (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape')
              .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn_rois'))
 
         (self.feed('rpn_rois','gt_boxes')

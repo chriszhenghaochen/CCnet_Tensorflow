@@ -19,7 +19,11 @@ DEBUG = False
 Outputs object detection proposals by applying estimated bounding-box
 transformations to a set of regular boxes (called "anchors").
 """
-def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,cfg_key,_feat_stride = [16,],anchor_scales = [8, 16, 32]):
+# def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,cfg_key,_feat_stride = [16,],anchor_scales = [8, 16, 32]):
+
+
+#chris: I change this for reject!!!
+def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_reshape,cfg_key,_feat_stride = [16,],anchor_scales = [8, 16, 32]):
     # Algorithm:
     #
     # for each (H, W) location i
@@ -37,6 +41,17 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,cfg_key,_feat_stri
     _num_anchors = _anchors.shape[0]
     rpn_cls_prob_reshape = np.transpose(rpn_cls_prob_reshape,[0,3,1,2])
     rpn_bbox_pred = np.transpose(rpn_bbox_pred,[0,3,1,2])
+
+    #chris - Debug
+    # print 'pn_cls_prob_reshape'
+    # print rpn_cls_prob_reshape.shape
+
+    # print 'rpn_bbox_pred'
+    # print rpn_bbox_pred.shape
+    
+    #chris
+
+
     #rpn_cls_prob_reshape = np.transpose(np.reshape(rpn_cls_prob_reshape,[1,rpn_cls_prob_reshape.shape[0],rpn_cls_prob_reshape.shape[1],rpn_cls_prob_reshape.shape[2]]),[0,3,2,1])
     #rpn_bbox_pred = np.transpose(rpn_bbox_pred,[0,3,2,1])
     im_info = im_info[0]
@@ -56,15 +71,14 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,cfg_key,_feat_stri
     bbox_deltas = rpn_bbox_pred
     #im_info = bottom[2].data[0, :]
 
-    #chris
-    # print 'scores'
-    # print scores.shape
-    # print scores
-
-    # print 'bbox'
-    # print bbox_deltas.shape
-    # # print bbox_deltas
     # #chris
+    # print 'Init scores'
+    # print scores.shape
+
+    # # print 'bbox'
+    # # print bbox_deltas.shape
+    # # # print bbox_deltas
+    # # #chris
 
     if DEBUG:
         print 'im_size: ({}, {})'.format(im_info[0], im_info[1])
@@ -111,16 +125,61 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,cfg_key,_feat_stri
     # reshape to (1 * H * W * A, 1) where rows are ordered by (h, w, a)
     scores = scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
 
-    # #chris
+    #chris
+    # print cfg_key
     # print 'scores'
+    # print scores
     # print scores.shape
-    # #chris
+    #chris
 
     # Convert anchors into proposals via bbox transformations
     proposals = bbox_transform_inv(anchors, bbox_deltas)
 
     # 2. clip predicted boxes to image
     proposals = clip_boxes(proposals, im_info[:2])
+
+    # #chris
+    # print 'scores before filter'
+    # print scores.shape
+
+    # print 'proposal before filter'
+    # print proposals.shape
+    # #chris
+
+
+    #--------------------------chris: only for testing reject!!-----------------------------------#
+    if cfg_key == 'TEST' and rpn_bbox_pred != None:
+        pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob_reshape,[0,3,1,2])
+        pre_scores = pre_rpn_cls_prob_reshape[:, _num_anchors:, :, :]
+        pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
+
+        # print 'scores in second filter'
+        # print pre_scores.shape
+        
+        passinds = np.where(pre_scores > 0.5)[0]
+
+        #reject here
+        proposals = proposals[passinds]
+        scores = scores[passinds]
+
+        num_reject = pre_scores.shape[0] - passinds.shape[0]
+
+        print "Conv5_2 -> Conv5_3 Reject %d Negative Samples"%\
+        (num_reject)
+
+        # #chris
+        # print 'scores after second filter'
+        # print scores.shape
+
+        # print 'proposal after second filter'
+        # print proposals.shape
+        # #chris
+
+        # print 'pass index'
+        # print passinds
+
+
+    #--------------------------chris: only for testing reject!!-----------------------------------#
 
 
     # filtering
@@ -131,7 +190,11 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,cfg_key,_feat_stri
     scores = scores[keep]
 
     # #chris
+    # print 'scores after filter'
     # print scores.shape
+
+    # print 'proposal after filter'
+    # print proposals.shape
     # #chris
 
     # 4. sort all (proposal, score) pairs by score from highest to lowest
@@ -142,10 +205,10 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,cfg_key,_feat_stri
     proposals = proposals[order, :]
     scores = scores[order]
 
-    # # #chris
+    # #chris
     # print 'scores'
     # print scores.shape
-    # # #chris
+    # #chris
 
     # 6. apply nms (e.g. threshold = 0.7)
     # 7. take after_nms_topN (e.g. 300)
@@ -153,6 +216,12 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,cfg_key,_feat_stri
     keep = nms(np.hstack((proposals, scores)), nms_thresh)
     if post_nms_topN > 0:
         keep = keep[:post_nms_topN]
+
+    #chris 
+    #in case cuda error occur
+    if keep == None or keep == []:
+        keep = [0]
+    #chris
     proposals = proposals[keep, :]
     scores = scores[keep]
 
