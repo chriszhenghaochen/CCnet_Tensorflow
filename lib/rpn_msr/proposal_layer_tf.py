@@ -161,10 +161,11 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
         #chris 
         #in case cuda error occur
-        if passinds == None or passinds == []:
-            passinds = [0]
+        if passinds == None or passinds.size == 0:          
+            passinds = np.array([0])
+            print passinds
         #chris
-        
+
 
         #reject here
         proposals = proposals[passinds]
@@ -193,17 +194,19 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     # filtering
     # 3. remove predicted boxes with either height or width < threshold
     # (NOTE: convert min_size to input image scale stored in im_info[2])
-    keep = _filter_boxes(proposals, min_size * im_info[2])
-    proposals = proposals[keep, :]
-    scores = scores[keep]
 
+    keep = _filter_boxes(proposals, min_size * im_info[2])
 
     #chris 
     #in case cuda error occur
     if keep == None or keep == []:
-        keep = [0]
+        keep = []
+        print keep
     #chris
 
+
+    proposals = proposals[keep, :]
+    scores = scores[keep]
 
 
     # #chris
@@ -214,11 +217,21 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     # print proposals.shape
     # #chris
 
+
     # 4. sort all (proposal, score) pairs by score from highest to lowest
     # 5. take top pre_nms_topN (e.g. 6000)
     order = scores.ravel().argsort()[::-1]
     if pre_nms_topN > 0:
         order = order[:pre_nms_topN]
+
+
+    #chris 
+    #in case cuda error occur
+    if order == None or order.size == 0:
+        order = np.array([0])
+        print order
+    #chris
+
     proposals = proposals[order, :]
     scores = scores[order]
 
@@ -226,6 +239,7 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     # print 'scores'
     # print scores.shape
     # #chris
+
 
     # 6. apply nms (e.g. threshold = 0.7)
     # 7. take after_nms_topN (e.g. 300)
