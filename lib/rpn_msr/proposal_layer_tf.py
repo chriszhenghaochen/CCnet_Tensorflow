@@ -158,6 +158,14 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
         
         passinds = np.where(pre_scores > 0.5)[0]
 
+
+        #chris 
+        #in case cuda error occur
+        if passinds == None or passinds == []:
+            passinds = [0]
+        #chris
+        
+
         #reject here
         proposals = proposals[passinds]
         scores = scores[passinds]
@@ -188,6 +196,15 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     keep = _filter_boxes(proposals, min_size * im_info[2])
     proposals = proposals[keep, :]
     scores = scores[keep]
+
+
+    #chris 
+    #in case cuda error occur
+    if keep == None or keep == []:
+        keep = [0]
+    #chris
+
+
 
     # #chris
     # print 'scores after filter'
