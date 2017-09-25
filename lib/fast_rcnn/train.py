@@ -18,6 +18,7 @@ import tensorflow as tf
 import sys
 from tensorflow.python.client import timeline
 import time
+pass_threshold = 0.3
 
 class SolverWrapper(object):
     """A simple wrapper around Caffe's solver.
@@ -45,8 +46,8 @@ class SolverWrapper(object):
     #chris 
     #this is for reject:
 
-    def passSample(self, scores, inds = None):
-        new_inds = tf.where(tf.less(scores[:,0], scores[:,1]))
+    def passSample(self, probs, inds = None, threshold = 0.5):
+        new_inds = tf.where(tf.greater(probs, threshold))
 
         if inds == None:
         # print new_inds
@@ -135,10 +136,11 @@ class SolverWrapper(object):
         # classification loss
         rpn1_cls_score = tf.reshape(self.net.get_output('rpn1_cls_score_reshape'),[-1,2])
         rpn1_label = tf.reshape(self.net.get_output('rpn1-data')[0],[-1])
+        rpn1_cls_prob = tf.reshape(self.net.get_output('rpn1_cls_prob_reshape'),[-1,2])[:,1]
 
         #chris
-        #rpn reject step-1 negative sample
-        rpn1_pass_inds = self.passSample(rpn1_cls_score)
+        #rpn reject step-1 negative sample, postive prob > 0.7
+        rpn1_pass_inds = self.passSample(rpn1_cls_prob, threshold = pass_threshold)
         #chris
 
 
@@ -315,22 +317,25 @@ class SolverWrapper(object):
 
             # #chris -- Debug
            
-            # a,b,c,d = sess.run([rpn_cls_score1,rpn_cls_score2,rpn_cls_score, rpn1_pass_inds],
+            # a,b,c,d,e = sess.run([rpn_cls_score1,rpn_cls_score2,rpn_cls_score, rpn1_pass_inds, rpn1_cls_prob],
             #                                                             feed_dict=feed_dict,
             #                                                             options=run_options,
             #                                                          run_metadata=run_metadata)                    
-            # print 'rpn score 1'
-            # # print a
-            # print a.shape
-            # print 'rpn score 2'
-            # # print b
-            # print b.shape
-            # print 'rpn score 3'
-            # # print c
-            # print c.shape
-            # print 'pass index'
-            # print d
+            # # print 'rpn score 1'
+            # # # print a
+            # # print a.shape
+            # # print 'rpn score 2'
+            # # # print b
+            # # print b.shape
+            # # print 'rpn score 3'
+            # # # print c
+            # # print c.shape
+            # # print 'pass index'
+            # # print d
             # #print d.shape
+
+            # print 'prob'
+            # print e
             # #chris
 
             #chris -- print reject sample number
@@ -347,8 +352,8 @@ class SolverWrapper(object):
             #chris
 
 
-            print '\n'
-            print '\n'
+            # print '\n'
+            # print '\n'
             timer.toc()
 
             if cfg.TRAIN.DEBUG_TIMELINE:

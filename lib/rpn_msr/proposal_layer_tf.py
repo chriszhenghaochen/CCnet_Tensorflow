@@ -15,6 +15,7 @@ import pdb
 
 
 DEBUG = False
+pass_threshold = 0.3
 """
 Outputs object detection proposals by applying estimated bounding-box
 transformations to a set of regular boxes (called "anchors").
@@ -156,7 +157,7 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
         # print 'scores in second filter'
         # print pre_scores.shape
         
-        passinds = np.where(pre_scores > 0.5)[0]
+        passinds = np.where(pre_scores > pass_threshold)[0]
 
 
         #chris 
