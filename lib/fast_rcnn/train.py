@@ -46,8 +46,35 @@ class SolverWrapper(object):
     #chris 
     #this is for reject:
 
+    def recall1(self, neg_inds, label):
+        label = tf.reshape(tf.gather(label, tf.reshape(neg_inds,[-1])),[-1])
+        label = tf.reshape(tf.gather(label,tf.where(tf.not_equal(label,-1))),[-1])
+
+        return label
+
+
+    def recall2(self, neg_inds, label):
+        label = tf.reshape(tf.gather(label, tf.reshape(neg_inds,[-1])),[-1])
+        true_reject = tf.reshape(tf.gather(label,tf.where(tf.equal(label,0))),[-1])
+
+        return true_reject
+
+
     def passSample(self, probs, inds = None, threshold = 0.5):
         new_inds = tf.where(tf.greater(probs, threshold))
+
+        if inds == None:
+        # print new_inds
+        # inds = tf.concat([inds, new_inds], axis = 0)
+            return new_inds
+
+        inds = tf.concat([inds, new_inds], axis = 0)
+        
+        return inds
+
+
+    def rejectSample(self, probs, inds = None, threshold = 0.5):
+        new_inds = tf.where(tf.less(probs, threshold))
 
         if inds == None:
         # print new_inds
@@ -139,8 +166,9 @@ class SolverWrapper(object):
         rpn1_cls_prob = tf.reshape(self.net.get_output('rpn1_cls_prob_reshape'),[-1,2])[:,1]
 
         #chris
-        #rpn reject step-1 negative sample, postive prob > 0.7
+        #rpn reject step-1 negative sample, postive prob > 0.3
         rpn1_pass_inds = self.passSample(rpn1_cls_prob, threshold = pass_threshold)
+        rpn1_neg_inds = self.rejectSample(rpn1_cls_prob, threshold = pass_threshold)
         #chris
 
 
@@ -339,20 +367,33 @@ class SolverWrapper(object):
             # #chris
 
             #chris -- print reject sample number
-            a,b = sess.run([rpn_cls_score1, rpn_cls_score2],
-                                            feed_dict=feed_dict,
-                                            options=run_options,
-                                            run_metadata=run_metadata)  
+            a,b = sess.run([self.recall1(rpn1_neg_inds, tf.reshape(self.net.get_output('rpn1-data')[0],[-1])),
+                            self.recall2(rpn1_neg_inds, tf.reshape(self.net.get_output('rpn1-data')[0],[-1]))],
+                            feed_dict=feed_dict,
+                            options=run_options,
+                            run_metadata=run_metadata)  
 
 
-            num_reject = a.shape[0] - b.shape[0]
+            num_reject = a.shape[0]
 
             print 'RPN conv5_2 -> RPN con5_3, Reject %d Neative Samples'%\
             (num_reject)
+
+
+            # print 'Recall of Correct Reject is %d'%\
+            # print 'c'
+            # print c.shape
+            # print 'd'
+            # print d.shape
+
+            recall = float(b.shape[0])/a.shape[0]
+            print 'Reject Sample Recall is %.4f'%\
+            (recall)
+
             #chris
 
 
-            # print '\n'
+            print '\n'
             # print '\n'
             timer.toc()
 
@@ -375,6 +416,9 @@ class SolverWrapper(object):
                 #chris, rpn1_cls only
                 print 'rpn1_loss_cls: %.4f'%\
                         (rpn1_loss_cls_value)
+
+                print '\n'
+                print '\n'
                 #chris
 
 
