@@ -18,7 +18,9 @@ import tensorflow as tf
 import sys
 from tensorflow.python.client import timeline
 import time
-pass_threshold = 0.3
+import matplotlib.pyplot as plt
+
+pass_threshold = 0.4
 
 class SolverWrapper(object):
     """A simple wrapper around Caffe's solver.
@@ -162,7 +164,13 @@ class SolverWrapper(object):
         # RPN-1
         # classification loss
         rpn1_cls_score = tf.reshape(self.net.get_output('rpn1_cls_score_reshape'),[-1,2])
-        rpn1_label = tf.reshape(self.net.get_output('rpn1-data')[0],[-1])
+
+        # chris
+        # rpn1_label = tf.reshape(self.net.get_output('rpn1-data')[0],[-1])
+        rejectlabel = tf.reshape(self.net.get_output('rpn1-data')[0],[-1])
+        rpn1_label =  rejectlabel
+        #chris
+
         rpn1_cls_prob = tf.reshape(self.net.get_output('rpn1_cls_prob_reshape'),[-1,2])[:,1]
 
         #chris
@@ -276,7 +284,18 @@ class SolverWrapper(object):
 
         last_snapshot_iter = -1
         timer = Timer()
+
+        #chris
+        #for ploting
+        recalls = []
+        rejects = []
+        #chris
+
+        #chris 
+        #for testing
         for iter in range(max_iters):
+        # for iter in range(20):
+        #chris
             # get one batch
             blobs = data_layer.forward()
 
@@ -301,12 +320,12 @@ class SolverWrapper(object):
 
 
             # #chris 
-            # #new BP
+            # #----------------------------------------------chris: new BP CLS + REG--------------------------------------------------#
             # rpn1_loss_cls_value, rpn1_loss_box_value, rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn1_cross_entropy, rpn1_loss_box, rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
             #                                                                                     feed_dict=feed_dict,
             #                                                                                     options=run_options,
             #                                                                                     run_metadata=run_metadata)
-            # #chris
+            # #-------------------------------------------------chris--------------------------------------------------------#
 
 
 
@@ -316,12 +335,15 @@ class SolverWrapper(object):
             #chris
 
 
-            #chris 
+            #-------------------------------------------------chris: new BP CLS ONLY---------------------------------------------------#
             #new BP, only output rpn1_cls
-            rpn1_loss_cls_value, rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn1_cross_entropy, rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
-                                                                                                feed_dict=feed_dict,
-                                                                                                options=run_options,
-                                                                                                run_metadata=run_metadata)
+            # rpn1_loss_cls_value, rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn1_cross_entropy, rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
+            #                                                                                     feed_dict=feed_dict,
+            #                                                                                     options=run_options,
+            #                                                                                     run_metadata=run_metadata)
+
+            #-------------------------------------------------------chris---------------------------------------------------#
+
             # #chris -- Debug
            
             # a,b,c,d,e = sess.run([rpn1_cls_score, rpn1_label, self.net.get_output('rpn_cls_prob'), self.net.get_output('rpn_cls_prob_reshape'), self.reject(rpn1_cls_score)],
@@ -366,18 +388,30 @@ class SolverWrapper(object):
             # print e
             # #chris
 
+            #--------------------------------------for recall--------------------------------#
             #chris -- print reject sample number
-            a,b = sess.run([self.recall1(rpn1_neg_inds, tf.reshape(self.net.get_output('rpn1-data')[0],[-1])),
-                            self.recall2(rpn1_neg_inds, tf.reshape(self.net.get_output('rpn1-data')[0],[-1]))],
-                            feed_dict=feed_dict,
-                            options=run_options,
-                            run_metadata=run_metadata)  
+            # a,b = sess.run([self.recall1(rpn1_neg_inds, rejectlabel),
+            #                 self.recall2(rpn1_neg_inds, rejectlabel)],
+            #                 feed_dict=feed_dict,
+            #                 options=run_options,
+            #                 run_metadata=run_metadata)  
+
+            a,b, rpn1_loss_cls_value, rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([self.recall1(rpn1_neg_inds, rejectlabel),
+                                                                                                                           self.recall2(rpn1_neg_inds, rejectlabel),
+                                                                                                                           rpn1_cross_entropy, 
+                                                                                                                           rpn_cross_entropy, 
+                                                                                                                           rpn_loss_box, 
+                                                                                                                           cross_entropy, 
+                                                                                                                           loss_box, train_op],
+                                                                                                                feed_dict=feed_dict,
+                                                                                                                options=run_options,
+                                                                                                                run_metadata=run_metadata)
 
 
             num_reject = a.shape[0]
 
-            print 'RPN conv5_2 -> RPN con5_3, Reject %d Neative Samples'%\
-            (num_reject)
+            # print 'RPN conv5_2 -> RPN con5_3, Reject %d Neative Samples'%\
+            # (num_reject)
 
 
             # print 'Recall of Correct Reject is %d'%\
@@ -387,14 +421,18 @@ class SolverWrapper(object):
             # print d.shape
 
             recall = float(b.shape[0])/a.shape[0]
-            print 'Reject Sample Recall is %.4f'%\
-            (recall)
+            # print 'Reject Sample Recall is %.4f'%\
+            # (recall)
+
+            recalls.append(recall)
+            rejects.append(num_reject)
+
+            # print '\n'
+            # print '\n'
 
             #chris
 
 
-            print '\n'
-            # print '\n'
             timer.toc()
 
             if cfg.TRAIN.DEBUG_TIMELINE:
@@ -417,8 +455,8 @@ class SolverWrapper(object):
                 print 'rpn1_loss_cls: %.4f'%\
                         (rpn1_loss_cls_value)
 
-                print '\n'
-                print '\n'
+                # print '\n'
+                # print '\n'
                 #chris
 
 
@@ -426,6 +464,12 @@ class SolverWrapper(object):
             if (iter+1) % cfg.TRAIN.SNAPSHOT_ITERS == 0:
                 last_snapshot_iter = iter
                 self.snapshot(sess, iter)
+
+        plt.plot(recalls)
+        plt.show()
+        plt.plot(rejects)
+        plt.show()
+        
 
         if last_snapshot_iter != iter:
             self.snapshot(sess, iter)
