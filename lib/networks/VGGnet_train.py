@@ -104,8 +104,14 @@ class VGGnet_train(Network):
              .conv(3,3,512,1,1,name='rpn_conv/3x3')
              .conv(1,1,len(anchor_scales)*3*2 ,1 , 1, padding='VALID', relu = False, name='rpn_cls_score'))
 
+        # (self.feed('rpn_cls_score','gt_boxes','im_info','data', 'rpn1_cls_prob_reshape')
+        #      .anchor_target_layer(_feat_stride, anchor_scales, name = 'rpn-data' ))
+
+        #chris
+        #do not apply Cascade in RPN
         (self.feed('rpn_cls_score','gt_boxes','im_info','data')
              .anchor_target_layer(_feat_stride, anchor_scales, name = 'rpn-data' ))
+        #chris
 
         # Loss of rpn_cls & rpn_boxes
 

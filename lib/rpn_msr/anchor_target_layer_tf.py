@@ -136,7 +136,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
         pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
 
         # print 'scores in second filter'
-        # print pre_scores.shape
+        # print pre_scores
         
         passinds = np.where(pre_scores > pass_threshold)[0]
 
