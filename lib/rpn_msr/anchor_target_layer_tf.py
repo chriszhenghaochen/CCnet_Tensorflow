@@ -19,8 +19,9 @@ import pdb
 #import tensorflow as tf
 
 DEBUG = False
+pass_threshold = 0.3
 
-def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [16,], anchor_scales = [4 ,8, 16, 32]):
+def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob_reshape, _feat_stride = [16,], anchor_scales = [4 ,8, 16, 32]):
     """
     Assign anchors to ground-truth targets. Produces anchor classification
     labels and bounding-box regression targets.
@@ -32,7 +33,12 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [
     #     return tf.transpose(tf.reshape(tf.transpose(input,[0,3,1,2]),[input_shape[0],
     #             int(d),tf.cast(tf.cast(input_shape[1],tf.float32)/tf.cast(d,tf.float32)*tf.cast(input_shape[3],tf.float32),tf.int32),input_shape[2]]),[0,2,3,1],name=name)
 
+    # #chris
+    # if pre_rpn_cls_prob_reshape != []:
+    #     print 'rpn1_cls_prob_reshape'
+    #     print pre_rpn_cls_prob_reshape.shape
 
+    # #chris
 
     _anchors = generate_anchors(scales=np.array(anchor_scales))
     _num_anchors = _anchors.shape[0]
@@ -106,17 +112,68 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [
     all_anchors = all_anchors.reshape((K * A, 4))
     total_anchors = int(K * A)
 
-    # #chris
-    # print 'All Anchor'
-    # print all_anchors.shape
-    # print all_anchors
-    # #chris
+
 
     # #chris
     # print 'Score'
     # print rpn_cls_score.shape
-    # print rpn_cls_score
+    # #print rpn_cls_score
     # #chris
+
+
+    #--------------------------------------------------reject here----------------------------------------#
+    if pre_rpn_cls_prob_reshape != []:
+
+        # #chris
+        # print 'All Anchor Before Reject'
+        # print all_anchors.shape
+        # #print all_anchors
+        #chris
+
+
+        pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob_reshape,[0,3,1,2])
+        pre_scores = pre_rpn_cls_prob_reshape[:, _num_anchors:, :, :]
+        pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
+
+        # print 'scores in second filter'
+        # print pre_scores.shape
+        
+        passinds = np.where(pre_scores > pass_threshold)[0]
+
+
+        #chris 
+        #in case cuda error occur
+        if passinds == None or passinds.size == 0:          
+            passinds = np.array([0])
+            print passinds
+        #chris
+
+        #reject here
+        all_anchors = all_anchors[passinds, :]
+
+        num_reject = pre_scores.shape[0] - passinds.shape[0]
+
+        # print "Conv5_2 -> Conv5_3 Reject %d Negative Samples"%\
+        # (num_reject)
+
+        # #chris
+        # print 'scores after second filter'
+        # print scores.shape
+
+        # print 'proposal after second filter'
+        # print proposals.shape
+        # #chris
+
+        # print 'pass index'
+        # print passinds
+
+        # #chris
+        # print 'All Anchor After REJECT'
+        # print all_anchors.shape
+        # #print all_anchors
+        #chris
+
+    #--------------------------------------------------reject done----------------------------------------#
 
 
     # only keep anchors inside the image
@@ -127,6 +184,9 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [
         (all_anchors[:, 3] < im_info[0] + _allowed_border)    # height
     )[0]
 
+
+    #
+
     # #chris
     # print 'inds_inside'
     # print inds_inside
@@ -136,13 +196,22 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, _feat_stride = [
         print 'total_anchors', total_anchors
         print 'inds_inside', len(inds_inside)
 
+
+    #chris: in case cuda error here:
+    if inds_inside.size == 0:
+        print 'Over Reject here'
+        inds_inside = np.array([0])
+
     # keep only inside anchors
     anchors = all_anchors[inds_inside, :]
 
-    # #chris
-    # print 'Anchor'
-    # print anchors.shape
-    # print anchors
+    
+
+    # # #chris
+    # if pre_rpn_cls_prob_reshape != []:
+    #     print 'Anchor'
+    #     print anchors.shape
+    # # print anchors
     # #chris
 
 

@@ -20,7 +20,8 @@ from tensorflow.python.client import timeline
 import time
 import matplotlib.pyplot as plt
 
-pass_threshold = 0.4
+pass_threshold = 0.3
+printRecall = False
 
 class SolverWrapper(object):
     """A simple wrapper around Caffe's solver.
@@ -155,7 +156,7 @@ class SolverWrapper(object):
         return outside_mul
 
 
-    def train_model(self, sess, max_iters):
+    def train_model_recall(self, sess, max_iters):
         """Network training loop."""
 
         data_layer = get_data_layer(self.roidb, self.imdb.num_classes)
@@ -294,7 +295,7 @@ class SolverWrapper(object):
         #chris 
         #for testing
         for iter in range(max_iters):
-        # for iter in range(20):
+        # for iter in range(1000):
         #chris
             # get one batch
             blobs = data_layer.forward()
@@ -335,14 +336,13 @@ class SolverWrapper(object):
             #chris
 
 
-            #-------------------------------------------------chris: new BP CLS ONLY---------------------------------------------------#
-            #new BP, only output rpn1_cls
+            # #-------------------------------------------------chris: new BP CLS ONLY---------------------------------------------------#
             # rpn1_loss_cls_value, rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn1_cross_entropy, rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
             #                                                                                     feed_dict=feed_dict,
             #                                                                                     options=run_options,
             #                                                                                     run_metadata=run_metadata)
 
-            #-------------------------------------------------------chris---------------------------------------------------#
+            # #-------------------------------------------------------chris---------------------------------------------------#
 
             # #chris -- Debug
            
@@ -410,8 +410,9 @@ class SolverWrapper(object):
 
             num_reject = a.shape[0]
 
-            # print 'RPN conv5_2 -> RPN con5_3, Reject %d Neative Samples'%\
-            # (num_reject)
+            print 'I am sure this is changed '
+            print 'RPN conv5_2 -> RPN con5_3, Reject %d Neative Samples'%\
+            (num_reject)
 
 
             # print 'Recall of Correct Reject is %d'%\
@@ -473,6 +474,161 @@ class SolverWrapper(object):
 
         if last_snapshot_iter != iter:
             self.snapshot(sess, iter)
+
+
+    def train_model(self, sess, max_iters):
+        """Network training loop."""
+
+        data_layer = get_data_layer(self.roidb, self.imdb.num_classes)
+
+        #chris
+        # RPN-1
+        # classification loss
+        rpn1_cls_score = tf.reshape(self.net.get_output('rpn1_cls_score_reshape'),[-1,2])
+        rpn1_label = tf.reshape(self.net.get_output('rpn1-data')[0],[-1])
+        rpn1_cls_score = tf.reshape(tf.gather(rpn1_cls_score,tf.where(tf.not_equal(rpn1_label,-1))),[-1,2])
+        rpn1_label = tf.reshape(tf.gather(rpn1_label,tf.where(tf.not_equal(rpn1_label,-1))),[-1])
+        rpn1_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn1_cls_score, labels=rpn1_label))
+
+        # chris: 
+        #I don't need that
+        # # bounding box regression L1 loss
+        # rpn1_bbox_pred = self.net.get_output('rpn1_bbox_pred')
+        # rpn1_bbox_targets = tf.transpose(self.net.get_output('rpn1-data')[1],[0,2,3,1])
+        # rpn1_bbox_inside_weights = tf.transpose(self.net.get_output('rpn1-data')[2],[0,2,3,1])
+        # rpn1_bbox_outside_weights = tf.transpose(self.net.get_output('rpn1-data')[3],[0,2,3,1])
+
+        # rpn1_smooth_l1 = self._modified_smooth_l1(3.0, rpn1_bbox_pred, rpn1_bbox_targets, rpn1_bbox_inside_weights, rpn1_bbox_outside_weights)
+        # rpn1_loss_box = tf.reduce_mean(tf.reduce_sum(rpn1_smooth_l1, reduction_indices=[1, 2, 3]))
+        # #chris
+        # chris
+
+
+
+        # RPN
+        # classification loss
+        rpn_cls_score = tf.reshape(self.net.get_output('rpn_cls_score_reshape'),[-1,2])
+        rpn_label = tf.reshape(self.net.get_output('rpn-data')[0],[-1])
+        rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score,tf.where(tf.not_equal(rpn_label,-1))),[-1,2])
+        rpn_label = tf.reshape(tf.gather(rpn_label,tf.where(tf.not_equal(rpn_label,-1))),[-1])
+        rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
+
+        # bounding box regression L1 loss
+        rpn_bbox_pred = self.net.get_output('rpn_bbox_pred')
+        rpn_bbox_targets = tf.transpose(self.net.get_output('rpn-data')[1],[0,2,3,1])
+        rpn_bbox_inside_weights = tf.transpose(self.net.get_output('rpn-data')[2],[0,2,3,1])
+        rpn_bbox_outside_weights = tf.transpose(self.net.get_output('rpn-data')[3],[0,2,3,1])
+
+        rpn_smooth_l1 = self._modified_smooth_l1(3.0, rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights)
+        rpn_loss_box = tf.reduce_mean(tf.reduce_sum(rpn_smooth_l1, reduction_indices=[1, 2, 3]))
+ 
+        # R-CNN
+        # classification loss
+        cls_score = self.net.get_output('cls_score')
+        label = tf.reshape(self.net.get_output('roi-data')[1],[-1])
+        cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
+
+        # bounding box regression L1 loss
+        bbox_pred = self.net.get_output('bbox_pred')
+        bbox_targets = self.net.get_output('roi-data')[2]
+        bbox_inside_weights = self.net.get_output('roi-data')[3]
+        bbox_outside_weights = self.net.get_output('roi-data')[4]
+
+        smooth_l1 = self._modified_smooth_l1(1.0, bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
+        loss_box = tf.reduce_mean(tf.reduce_sum(smooth_l1, reduction_indices=[1]))
+
+        # final loss
+        #chris I comment that
+        #loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
+        #chris
+
+        #chris
+        #this is the new loss
+        loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + rpn1_cross_entropy
+        #chris
+
+        # optimizer and learning rate
+        global_step = tf.Variable(0, trainable=False)
+        lr = tf.train.exponential_decay(cfg.TRAIN.LEARNING_RATE, global_step,
+                                        cfg.TRAIN.STEPSIZE, 0.1, staircase=True)
+        momentum = cfg.TRAIN.MOMENTUM
+        train_op = tf.train.MomentumOptimizer(lr, momentum).minimize(loss, global_step=global_step)
+
+        # iintialize variables
+        sess.run(tf.global_variables_initializer())
+        if self.pretrained_model is not None:
+            print ('Loading pretrained model '
+                   'weights from {:s}').format(self.pretrained_model)
+            self.net.load(self.pretrained_model, sess, self.saver, True)
+
+        last_snapshot_iter = -1
+        timer = Timer()
+        for iter in range(max_iters):
+            # get one batch
+            blobs = data_layer.forward()
+
+            # Make one SGD update
+            feed_dict={self.net.data: blobs['data'], self.net.im_info: blobs['im_info'], self.net.keep_prob: 0.5, \
+                           self.net.gt_boxes: blobs['gt_boxes']}
+
+            run_options = None
+            run_metadata = None
+            if cfg.TRAIN.DEBUG_TIMELINE:
+                run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                run_metadata = tf.RunMetadata()
+
+            timer.tic()
+
+            #chris I comment that
+            # rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
+            #                                                                                     feed_dict=feed_dict,
+            #                                                                                     options=run_options,
+            #                                                                                     run_metadata=run_metadata)
+            #chris
+
+
+            # #chris 
+            # #new BP
+            # rpn1_loss_cls_value, rpn1_loss_box_value, rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn1_cross_entropy, rpn1_loss_box, rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
+            #                                                                                     feed_dict=feed_dict,
+            #                                                                                     options=run_options,
+            #                                                                                     run_metadata=run_metadata)
+            # #chris
+
+            #-------------------------------------------------chris: new BP CLS ONLY---------------------------------------------------#
+            rpn1_loss_cls_value, rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn1_cross_entropy, rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
+                                                                                                feed_dict=feed_dict,
+                                                                                                options=run_options,
+                                                                                                run_metadata=run_metadata)
+
+            #-------------------------------------------------------chris---------------------------------------------------#
+
+            timer.toc()
+
+            if cfg.TRAIN.DEBUG_TIMELINE:
+                trace = timeline.Timeline(step_stats=run_metadata.step_stats)
+                trace_file = open(str(long(time.time() * 1000)) + '-train-timeline.ctf.json', 'w')
+                trace_file.write(trace.generate_chrome_trace_format(show_memory=False))
+                trace_file.close()
+
+            if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
+                print 'iter: %d / %d, total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, lr: %f'%\
+                        (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value + loss_cls_value + loss_box_value ,rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, lr.eval())
+                print 'speed: {:.3f}s / iter'.format(timer.average_time)
+
+                #chris
+                print 'rpn1_loss_cls: %.4f'%\
+                        (rpn1_loss_cls_value)
+                #chris
+
+
+            if (iter+1) % cfg.TRAIN.SNAPSHOT_ITERS == 0:
+                last_snapshot_iter = iter
+                self.snapshot(sess, iter)
+
+        if last_snapshot_iter != iter:
+            self.snapshot(sess, iter)
+
 
 def get_training_roidb(imdb):
     """Returns a roidb (Region of Interest database) for use in training."""
@@ -538,7 +694,16 @@ def train_net(network, imdb, roidb, output_dir, pretrained_model=None, max_iters
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         sw = SolverWrapper(sess, saver, network, imdb, roidb, output_dir, pretrained_model=pretrained_model)
         print 'Solving...'
-        sw.train_model(sess, max_iters)
+
+        #chris
+        #print recall:
+        if printRecall:
+            sw.train_model_recall(sess, max_iters)
+
+        #train
+        else:
+            sw.train_model(sess, max_iters)
+
         print 'done solving'
 
 

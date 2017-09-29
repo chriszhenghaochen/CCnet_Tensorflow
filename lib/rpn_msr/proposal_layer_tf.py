@@ -174,8 +174,8 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
         num_reject = pre_scores.shape[0] - passinds.shape[0]
 
-        print "Conv5_2 -> Conv5_3 Reject %d Negative Samples"%\
-        (num_reject)
+        # print "Conv5_2 -> Conv5_3 Reject %d Negative Samples"%\
+        # (num_reject)
 
         # #chris
         # print 'scores after second filter'
