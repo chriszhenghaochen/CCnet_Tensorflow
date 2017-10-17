@@ -15,7 +15,9 @@ import pdb
 
 
 DEBUG = False
-pass_threshold = 0.3
+# pass_threshold = 0.4
+reject_number = 5000
+
 """
 Outputs object detection proposals by applying estimated bounding-box
 transformations to a set of regular boxes (called "anchors").
@@ -126,6 +128,12 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     # reshape to (1 * H * W * A, 1) where rows are ordered by (h, w, a)
     scores = scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
 
+
+
+
+    
+    #print 'SCORE' , scores
+
     #chris
     # print cfg_key
     # print 'scores'
@@ -135,6 +143,10 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
     # Convert anchors into proposals via bbox transformations
     proposals = bbox_transform_inv(anchors, bbox_deltas)
+
+    ##chris
+    #print 'len', len(proposals)
+    ##chris
 
     # 2. clip predicted boxes to image
     proposals = clip_boxes(proposals, im_info[:2])
@@ -148,17 +160,40 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     # #chris
 
 
+
+
+
     #--------------------------chris: only for testing reject!!-----------------------------------#
     if pre_rpn_cls_prob_reshape != None:
+
+        # ----------------------------------chris: biggest change happens here----------------------------------------#
+        #combine SCORE
         pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob_reshape,[0,3,1,2])
         pre_scores = pre_rpn_cls_prob_reshape[:, _num_anchors:, :, :]
         pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
 
+        #---------------------------------------------chris-----------------------------------------------------------#
+
         # print 'scores in second filter'
         # print pre_scores.shape
-        
-        passinds = np.where(pre_scores > pass_threshold)[0]
+         
+        # chirs
+        # pass by threshold
+        # passinds = np.where(pre_scores > pass_threshold)[0]
+        # chris
+        # pass by number
 
+        #pre_scores = pre_scores[keep]
+         
+        #set up pass number
+        passnumber = len(pre_scores) - reject_number
+
+        if passnumber <= 0:
+            passnumber = 1
+
+        #set up pass index
+        pre_scores = pre_scores.ravel()
+        passinds = pre_scores.argsort()[passnumber*-1:][::-1]
 
         #chris 
         #in case cuda error occur
@@ -167,14 +202,15 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
             print passinds
         #chris
 
+        passinds.sort()
 
         #reject here
-        proposals = proposals[passinds]
+        proposals = proposals[passinds, :]
         scores = scores[passinds]
 
-        num_reject = pre_scores.shape[0] - passinds.shape[0]
+        # num_reject = len(pre_scores) - len(passinds)
 
-        # print "Conv5_2 -> Conv5_3 Reject %d Negative Samples"%\
+        # print "RPN Conv5_2 -> Conv5_3 Reject %d Negative Samples"%\
         # (num_reject)
 
         # #chris
@@ -192,6 +228,10 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     #--------------------------chris: only for testing reject!!-----------------------------------#
 
 
+
+
+
+
     # filtering
     # 3. remove predicted boxes with either height or width < threshold
     # (NOTE: convert min_size to input image scale stored in im_info[2])
@@ -205,10 +245,14 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
         print keep
     #chris
 
+    #print 'PROPOSAL ', len(proposals)
+    #print 'proposal reject ', len(proposals) - len(keep)
 
     proposals = proposals[keep, :]
     scores = scores[keep]
 
+
+    
 
     # #chris
     # print 'scores after filter'
@@ -254,8 +298,12 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     if keep == None or keep == []:
         keep = [0]
     #chris
+
     proposals = proposals[keep, :]
     scores = scores[keep]
+
+
+    # print len(proposals)
 
     # #chris
     # print scores.shape

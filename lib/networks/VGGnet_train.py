@@ -7,6 +7,7 @@ from networks.network import Network
 n_classes = 21
 _feat_stride = [16,]
 anchor_scales = [8, 16, 32]
+factor = 0.75
 
 class VGGnet_train(Network):
     def __init__(self, trainable=True):
@@ -104,14 +105,17 @@ class VGGnet_train(Network):
              .conv(3,3,512,1,1,name='rpn_conv/3x3')
              .conv(1,1,len(anchor_scales)*3*2 ,1 , 1, padding='VALID', relu = False, name='rpn_cls_score'))
 
-        # (self.feed('rpn_cls_score','gt_boxes','im_info','data', 'rpn1_cls_prob_reshape')
-        #      .anchor_target_layer(_feat_stride, anchor_scales, name = 'rpn-data' ))
+        #chris
+        #cascade here
+        (self.feed('rpn_cls_score','gt_boxes','im_info','data', 'rpn1_cls_prob_reshape')
+             .anchor_target_layer(_feat_stride, anchor_scales, name = 'rpn-data'))
+        #chris
 
-        #chris
-        #do not apply Cascade in RPN
-        (self.feed('rpn_cls_score','gt_boxes','im_info','data')
-             .anchor_target_layer(_feat_stride, anchor_scales, name = 'rpn-data' ))
-        #chris
+        # #chris
+        # #do not apply Cascade in RPN
+        # (self.feed('rpn_cls_score','gt_boxes','im_info','data')
+        #      .anchor_target_layer(_feat_stride, anchor_scales, name = 'rpn-data' ))
+        # #chris
 
         # Loss of rpn_cls & rpn_boxes
 
@@ -126,8 +130,26 @@ class VGGnet_train(Network):
         (self.feed('rpn_cls_prob')
              .reshape_layer(len(anchor_scales)*3*2,name = 'rpn_cls_prob_reshape'))
 
-        (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape')
+
+        #chris: score add up
+        (self.feed('rpn1_cls_score_reshape', 'rpn_cls_score_reshape')
+             .scoreaddup(factor, name = 'rpn12_cls_score_reshape')
+             .softmax(name='rpn12_cls_prob'))
+
+        (self.feed('rpn12_cls_prob')
+             .reshape_layer(len(anchor_scales)*3*2,name = 'rpn12_cls_prob_reshape'))
+        #chris
+
+
+
+        # (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape')
+        #      .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn_rois'))
+
+
+        #chris: proposal add up
+        (self.feed('rpn12_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape')
              .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn_rois'))
+        #chris
 
         (self.feed('rpn_rois','gt_boxes')
              .proposal_target_layer(n_classes,name = 'roi-data'))

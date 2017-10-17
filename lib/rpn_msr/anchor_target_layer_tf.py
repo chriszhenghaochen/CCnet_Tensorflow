@@ -20,6 +20,7 @@ import pdb
 
 DEBUG = False
 pass_threshold = 0.3
+reject_number = 5000
 
 def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob_reshape, _feat_stride = [16,], anchor_scales = [4 ,8, 16, 32]):
     """
@@ -82,8 +83,8 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     height, width = rpn_cls_score.shape[1:3]
 
     # #chris
-    # print height
-    # print width
+    # print 'height ', height
+    # print 'width ',width
     # #chris
 
     if DEBUG:
@@ -106,13 +107,17 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     # shift anchors (K, A, 4)
     # reshape to (K*A, 4) shifted anchors
     A = _num_anchors
+
+    # #chris -get number of anchors
+    # print 'number of anchors ' , A
+
     K = shifts.shape[0]
     all_anchors = (_anchors.reshape((1, A, 4)) +
                    shifts.reshape((1, K, 4)).transpose((1, 0, 2)))
     all_anchors = all_anchors.reshape((K * A, 4))
     total_anchors = int(K * A)
 
-
+    #print 'RPN ', total_anchors 
 
     # #chris
     # print 'Score'
@@ -120,6 +125,9 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     # #print rpn_cls_score
     # #chris
 
+
+
+        #chris
 
     #--------------------------------------------------reject here----------------------------------------#
     if pre_rpn_cls_prob_reshape != []:
@@ -135,11 +143,15 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
         pre_scores = pre_rpn_cls_prob_reshape[:, _num_anchors:, :, :]
         pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
 
-        # print 'scores in second filter'
-        # print pre_scores
-        
-        passinds = np.where(pre_scores > pass_threshold)[0]
+        #set up pass number
+        passnumber = len(pre_scores) - reject_number
 
+        if passnumber <= 0:
+            passnumber = 1
+
+        #set up pass index
+        pre_scores = pre_scores.ravel()
+        passinds = pre_scores.argsort()[passnumber*-1:][::-1]
 
         #chris 
         #in case cuda error occur
@@ -148,13 +160,60 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
             print passinds
         #chris
 
-        #reject here
+        #passinds.sort()
+
+        #print len(passinds)
         all_anchors = all_anchors[passinds, :]
 
-        num_reject = pre_scores.shape[0] - passinds.shape[0]
+        # num_reject = len(pre_scores) - len(passinds)
 
-        # print "Conv5_2 -> Conv5_3 Reject %d Negative Samples"%\
+        # print "RPN Conv5_2 -> Conv5_3 Reject %d Negative Samples"%\
         # (num_reject)
+
+        # print 'scores in second filter'
+        # print pre_scores
+        
+
+        #do this before reject, wipe out the over boundary
+        #pre_scores = pre_scores[inds_inside]
+        #done 
+
+
+        #rejct via threshold
+        # passinds = np.where(pre_scores > pass_threshold)[0]
+
+        #reject via number
+        #print 'pre score ', pre_scores
+        #print 'size of pre score ', len(pre_scores)
+
+        # pre_scores = pre_scores.ravel()
+        # rejinds = pre_scores.argsort()[reject_number*-1:][::-1]
+
+        # chris
+        # set reject samples = -1
+        # a = len(np.where(labels == -1)[0]) 
+
+        # labels[rejinds] = -1
+
+        # b = len(np.where(labels == -1)[0]) 
+
+        # print 'Reject', b - a, 'samples'
+        # chris
+
+
+        #print 'reject index', rejinds
+
+        # # passinds.sort()
+        # print 'pass index 2', passinds
+
+
+        # #chris 
+        # #in case cuda error occur
+        # if passinds == None or passinds.size == 0:          
+        #     passinds = np.array([0])
+        #     print passinds
+        # #chris
+
 
         # #chris
         # print 'scores after second filter'
@@ -172,8 +231,15 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
         # print all_anchors.shape
         # #print all_anchors
         #chris
-
     #--------------------------------------------------reject done----------------------------------------#
+
+    # #chris
+    # print 'after reject positive ', len(np.where(labels == 1)[0])
+    # print 'after reject negative ', len(np.where(labels == 0)[0])    
+
+
+
+
 
 
     # only keep anchors inside the image
@@ -188,8 +254,8 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     #
 
     # #chris
-    # print 'inds_inside'
-    # print inds_inside
+    # print 'total_anchors ', total_anchors
+    # #print 'inds_inside ', len(inds_inside)
     # #chris
 
     if DEBUG:
@@ -205,7 +271,25 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     # keep only inside anchors
     anchors = all_anchors[inds_inside, :]
 
-    
+    #print 'RPN reject ', total_anchors - len(inds_inside)
+
+    # # chris - Debug
+    # if pre_rpn_cls_prob_reshape != []:
+    #     print '2'
+
+    # else:
+    #     print '1'
+
+    # print len(inds_inside)
+    # if len(inds_inside) == len(anchors):
+    #     print 'TRUE'
+
+    # else:
+    #     print 'FALSE'
+    #chris
+
+
+
 
     # # #chris
     # if pre_rpn_cls_prob_reshape != []:
@@ -259,6 +343,19 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
         # assign bg labels last so that negative labels can clobber positives
         labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
+
+    # #chris
+    # if(pre_rpn_cls_prob_reshape != []):
+    #     print 'REJECT'
+    # else:
+    #     print 'NO REJECT'
+
+    # print 'init positive ', len(np.where(labels == 1)[0])
+    # print 'init negative ', len(np.where(labels == 0)[0])
+
+
+
+
     # subsample positive labels if we have too many
     num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
     fg_inds = np.where(labels == 1)[0]
@@ -282,7 +379,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     #####################
 
     
-    # #chris    
+
     # print 'labels'
     # #print labels
     # print labels.shape
@@ -292,8 +389,17 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     # print rpn_cls_score.shape
     # #chris
 
-
-
+    
+    
+    # #chris   
+    # print 'BATCH_SIZE: '
+    # print 'num_fg' , num_fg
+    # print 'num_bg' , num_bg
+    # print 'final positive ', len(np.where(labels == 1)[0])
+    # print 'final negative ', len(np.where(labels == 0)[0])
+    # print '\n'
+    # print '\n'
+    # #chris
     #####################
 
 
@@ -390,6 +496,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     # print rpn_bbox_targets.shape
 
     # #chris
+
 
     return rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights #,all_anchors.astype(np.float)
 
