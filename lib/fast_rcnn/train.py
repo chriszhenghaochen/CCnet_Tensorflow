@@ -505,13 +505,22 @@ class SolverWrapper(object):
 
 
 
-        # RPN
-        # classification loss
+        ## RPN
+        ## classification loss
         rpn_cls_score = tf.reshape(self.net.get_output('rpn_cls_score_reshape'),[-1,2])
         rpn_label = tf.reshape(self.net.get_output('rpn-data')[0],[-1])
         rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score,tf.where(tf.not_equal(rpn_label,-1))),[-1,2])
         rpn_label = tf.reshape(tf.gather(rpn_label,tf.where(tf.not_equal(rpn_label,-1))),[-1])
         rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
+
+
+        # #----------------------chris RPN Reject-----------------------#
+        # rpn_label_reject = tf.reshape(self.net.get_output('rpn-data-reject')[0],[-1])
+        # rpn_cls_score_reject = tf.reshape(tf.gather(rpn_cls_score,tf.where(tf.not_equal(rpn_label_reject,-1))),[-1,2])
+        # rpn_label_reject = tf.reshape(tf.gather(rpn_label_reject,tf.where(tf.not_equal(rpn_label_reject,-1))),[-1])
+        # rpn_cross_entropy_reject = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score_reject, labels=rpn_label_reject))
+
+
 
         # bounding box regression L1 loss
         rpn_bbox_pred = self.net.get_output('rpn_bbox_pred')
@@ -547,12 +556,24 @@ class SolverWrapper(object):
         loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + rpn1_cross_entropy
         #chris
 
+
+        # #chris
+        # #this is for reject loss
+        # loss_reject = cross_entropy + loss_box + rpn_cross_entropy_reject + rpn_loss_box + rpn1_cross_entropy
+        # #chris
+
+
         # optimizer and learning rate
         global_step = tf.Variable(0, trainable=False)
         lr = tf.train.exponential_decay(cfg.TRAIN.LEARNING_RATE, global_step,
                                         cfg.TRAIN.STEPSIZE, 0.1, staircase=True)
         momentum = cfg.TRAIN.MOMENTUM
         train_op = tf.train.MomentumOptimizer(lr, momentum).minimize(loss, global_step=global_step)
+
+        # #chris
+        # #reject train op:
+        # train_op_reject = tf.train.MomentumOptimizer(lr, momentum).minimize(loss_reject, global_step=global_step)
+        # #chris
 
         # iintialize variables
         sess.run(tf.global_variables_initializer())
@@ -603,6 +624,7 @@ class SolverWrapper(object):
 
             #-------------------------------------------------------chris---------------------------------------------------#
 
+
             timer.toc()
 
             if cfg.TRAIN.DEBUG_TIMELINE:
@@ -622,6 +644,8 @@ class SolverWrapper(object):
                 #chris
 
 
+
+            #chris
             if (iter+1) % cfg.TRAIN.SNAPSHOT_ITERS == 0:
                 last_snapshot_iter = iter
                 self.snapshot(sess, iter)
@@ -629,6 +653,11 @@ class SolverWrapper(object):
         if last_snapshot_iter != iter:
             self.snapshot(sess, iter)
 
+        #chris
+        print '\n'
+        print '\n'
+        print '\n'
+        #chris
 
 def get_training_roidb(imdb):
     """Returns a roidb (Region of Interest database) for use in training."""
