@@ -21,8 +21,8 @@ import time
 import matplotlib.pyplot as plt
 from fast_rcnn.focal_loss import SigmoidFocalClassificationLoss as fl
 
-pass_threshold = 0.3
-printRecall = False
+# pass_threshold = 0.3
+# printRecall = False
 
 class SolverWrapper(object):
     """A simple wrapper around Caffe's solver.
@@ -172,18 +172,17 @@ class SolverWrapper(object):
         rpn1_label = tf.reshape(self.net.get_output('rpn1-data')[0],[-1])
         rpn1_cls_score = tf.reshape(tf.gather(rpn1_cls_score,tf.where(tf.not_equal(rpn1_label,-1))),[-1,2])
         rpn1_label = tf.reshape(tf.gather(rpn1_label,tf.where(tf.not_equal(rpn1_label,-1))),[-1])
-        rpn1_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn1_cls_score, labels=rpn1_label))
+
+        #chris: Regular loss
+        #rpn1_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn1_cls_score, labels=rpn1_label))
+        #chris: Done
 
         #chris: Focal Loss
-        # rpn1_cls_score = tf.reshape(self.net.get_output('rpn1_cls_prob_reshape'),[-1,2])
-        # rpn1_label = tf.reshape(self.net.get_output('rpn1-data')[0],[-1])
-        # rpn1_cls_score = tf.reshape(tf.gather(rpn1_cls_score,tf.where(tf.not_equal(rpn1_label,-1))),[-1,2])
-        # rpn1_label = tf.reshape(tf.gather(rpn1_label,tf.where(tf.not_equal(rpn1_label,-1))),[-1])
-        # rpn1_label = tf.cast(rpn1_label, tf.float32)
-
-        # rpn1_cls_score = tf.reshape(rpn1_cls_score[:,tf.size(rpn1_label):],[-1])
-        # rpn1_weights = tf.ones([1,tf.size(rpn1_label)], tf.float32)
-        # rpn1_cross_entropy = self.fl.compute_loss(prediction_tensor = rpn1_cls_score, target_tensor = rpn1_label, weights = rpn1_weights)
+        rpn1_cls_score = tf.nn.softmax(rpn1_cls_score)[:,1]
+        rpn1_label = tf.cast(rpn1_label, tf.float32)
+        rpn1_weights = tf.ones([1, tf.size(rpn1_label)], tf.float32)
+        rpn1_cross_entropy = self.fl.compute_loss(prediction_tensor = rpn1_cls_score, target_tensor = rpn1_label, weights = rpn1_weights)
+        #chris: Done
 
 
 
@@ -346,17 +345,17 @@ class SolverWrapper(object):
             # #debug done
 
 
-            #-------------------------------------------------Debug ONLY---------------------------------------------------#
-            a, b, c = sess.run([rpn1_cls_score, rpn1_label, rpn1_weights],
-                                                                                                feed_dict=feed_dict,
-                                                                                                options=run_options,
-                                                                                                run_metadata=run_metadata)
+            # #-------------------------------------------------Debug ONLY---------------------------------------------------#
+            # a, b, c = sess.run([rpn1_cls_score, rpn1_label, rpn1_weights],
+            #                                                                                     feed_dict=feed_dict,
+            #                                                                                     options=run_options,
+            #                                                                                     run_metadata=run_metadata)
 
-            #-------------------------------------------------------chris---------------------------------------------------#
+            # #-------------------------------------------------------chris---------------------------------------------------#
 
-            print a
-            print b
-            print c
+            # print a
+            # print b
+            # print c
 
             timer.toc()
 
