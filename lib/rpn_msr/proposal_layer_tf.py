@@ -16,7 +16,13 @@ import pdb
 
 DEBUG = False
 # pass_threshold = 0.4
-reject_number = 5000
+# reject_number = 3000
+
+#reject factor
+reject_factor = 0.4
+
+#chain factor
+factor = 1
 
 """
 Outputs object detection proposals by applying estimated bounding-box
@@ -26,7 +32,7 @@ transformations to a set of regular boxes (called "anchors").
 
 
 #chris: I change this for reject!!!
-def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_reshape,cfg_key,_feat_stride = [16,],anchor_scales = [8, 16, 32]):
+def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_reshape,pass_inds,cfg_key,_feat_stride = [16,],anchor_scales = [8, 16, 32]):
     # Algorithm:
     #
     # for each (H, W) location i
@@ -39,7 +45,7 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     # apply NMS with threshold 0.7 to remaining proposals
     # take after_nms_topN proposals after NMS
     # return the top proposals (-> RoIs top, scores top)
-    #layer_params = yaml.load(self.param_str_)
+    #layer_params = yaml.load(self.param_str_)  
     _anchors = generate_anchors(scales=np.array(anchor_scales))
     _num_anchors = _anchors.shape[0]
     rpn_cls_prob_reshape = np.transpose(rpn_cls_prob_reshape,[0,3,1,2])
@@ -47,8 +53,7 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
     #chris - Debug
     # print 'pn_cls_prob_reshape'
-    # print rpn_cls_prob_reshape.shape
-
+    # print rpn_cls_prob_reshape
     # print 'rpn_bbox_pred'
     # print rpn_bbox_pred.shape
     
@@ -160,20 +165,32 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     # #chris
 
 
+    ##-------------------------------------chris: Reject for Train------------------------------------#
+    if cfg_key == 'TRAIN' and pass_inds != []:
 
 
+        # # ----------------------------------chris: biggest change happens here----------------------------------------#
+        # #combine SCORE
+        # pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob_reshape,[0,3,1,2])
+        # pre_scores = pre_rpn_cls_prob_reshape[:, _num_anchors:, :, :]
+        # pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
 
-    #--------------------------chris: only for testing reject!!-----------------------------------#
-    if pre_rpn_cls_prob_reshape != None:
 
-        # ----------------------------------chris: biggest change happens here----------------------------------------#
-        #combine SCORE
-        pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob_reshape,[0,3,1,2])
-        pre_scores = pre_rpn_cls_prob_reshape[:, _num_anchors:, :, :]
-        pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
+        # #somftmax add up#
+        # #print 'scores ' , scores
+        # #print 'prescores' , pre_scores
+        # scores = pre_scores*factor + scores
+        # #print 'scores ' , scores
 
-        #---------------------------------------------chris-----------------------------------------------------------#
+        # max_score = max(scores)
+        # min_score = min(scores)
+        # scores = scores / (max_score - min_score)
+        # #preprocessing done
 
+
+        # #---------------------------------------------chris-----------------------------------------------------------#
+
+        
         # print 'scores in second filter'
         # print pre_scores.shape
          
@@ -185,49 +202,30 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
         #pre_scores = pre_scores[keep]
          
-        #set up pass number
-        passnumber = len(pre_scores) - reject_number
 
-        if passnumber <= 0:
-            passnumber = 1
-
-        #set up pass index
-        pre_scores = pre_scores.ravel()
-        passinds = pre_scores.argsort()[passnumber*-1:][::-1]
-
-        #chris 
-        #in case cuda error occur
-        if passinds == None or passinds.size == 0:          
-            passinds = np.array([0])
-            print passinds
-        #chris
-
+        passinds = pass_inds
         passinds.sort()
 
+        # print passinds
+
+        #print 'before proposal' , len(scores)
+
         #reject here
+        #print len(scores)
+
         proposals = proposals[passinds, :]
         scores = scores[passinds]
+
+        #print len(scores)
+
+        #print 'after proposal' , len(scores)
 
         # num_reject = len(pre_scores) - len(passinds)
 
         # print "RPN Conv5_2 -> Conv5_3 Reject %d Negative Samples"%\
-        # (num_reject)
+        # (num_reject)    
 
-        # #chris
-        # print 'scores after second filter'
-        # print scores.shape
-
-        # print 'proposal after second filter'
-        # print proposals.shape
-        # #chris
-
-        # print 'pass index'
-        # print passinds
-
-
-    #--------------------------chris: only for testing reject!!-----------------------------------#
-
-
+    ##----------------------------------------chris: done---------------------------------------------#
 
 
 
@@ -250,7 +248,6 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
     proposals = proposals[keep, :]
     scores = scores[keep]
-
 
     
 
@@ -284,6 +281,90 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     # print 'scores'
     # print scores.shape
     # #chris
+
+
+    #--------------------------chris: only for testing reject!!-----------------------------------#
+    if cfg_key == 'TEST' and pre_rpn_cls_prob_reshape != None:
+
+        # # ----------------------------------chris: biggest change happens here----------------------------------------#
+        # #combine SCORE
+        pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob_reshape,[0,3,1,2])
+        pre_scores = pre_rpn_cls_prob_reshape[:, _num_anchors:, :, :]
+        pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
+
+
+        #pre-prorcessing
+        pre_scores = pre_scores[keep]
+        pre_scores = pre_scores[order]
+
+
+        # #somftmax add up#
+        # #print 'scores ' , scores
+        # #print 'prescores' , pre_scores
+        # scores = pre_scores*factor + scores
+        # #print 'scores ' , scores
+
+        # max_score = max(scores)
+        # min_score = min(scores)
+        # scores = scores / (max_score - min_score)
+        # #preprocessing done
+
+
+
+        # #---------------------------------------------chris-----------------------------------------------------------#
+
+        # print 'scores in second filter'
+        # print pre_scores.shape
+         
+        # chirs
+        # pass by threshold
+        # passinds = np.where(pre_scores > pass_threshold)[0]
+        # chris
+        # pass by number
+
+        #pre_scores = pre_scores[keep]
+         
+
+        ##important: reject via factor:
+        reject_number = int(len(pre_scores)*reject_factor)
+
+
+        #set up pass number
+        passnumber = len(pre_scores) - reject_number
+
+        if passnumber <= 0:
+            passnumber = 1
+
+        #set up pass index
+        pre_scores = pre_scores.ravel()
+        passinds = pre_scores.argsort()[::-1][:passnumber]
+
+        #chris 
+        #in case cuda error occur
+        if passinds == None or passinds.size == 0:          
+            passinds = np.array([0])
+            print passinds
+        #chris
+
+        passinds.sort()
+
+        #print 'before proposal' , len(scores)
+
+        #reject here
+        proposals = proposals[passinds, :]
+        scores = scores[passinds]
+
+        #print 'after proposal' , len(scores)
+
+        # num_reject = len(pre_scores) - len(passinds)
+
+        # print "RPN Conv5_2 -> Conv5_3 Reject %d Negative Samples"%\
+        # (num_reject)
+
+    #--------------------------chris: only for testing reject!!-----------------------------------#
+
+
+
 
 
     # 6. apply nms (e.g. threshold = 0.7)

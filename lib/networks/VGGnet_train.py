@@ -7,7 +7,7 @@ from networks.network import Network
 n_classes = 21
 _feat_stride = [16,]
 anchor_scales = [8, 16, 32]
-factor = 0.75
+factor = 1
 
 class VGGnet_train(Network):
     def __init__(self, trainable=True):
@@ -141,15 +141,15 @@ class VGGnet_train(Network):
         #chris
 
 
-
-        # (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape')
-        #      .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn_rois'))
-
-
         #chris: proposal add up
         (self.feed('rpn12_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape')
              .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn_rois'))
         #chris
+
+
+        # (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape','rpn-data')
+        #      .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn_rois'))
+
 
         (self.feed('rpn_rois','gt_boxes')
              .proposal_target_layer(n_classes,name = 'roi-data'))

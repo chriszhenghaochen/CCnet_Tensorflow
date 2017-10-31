@@ -159,25 +159,46 @@ class Network(object):
     def proposal_layer(self, input, _feat_stride, anchor_scales, cfg_key, name):
         if isinstance(input[0], tuple):
             input[0] = input[0][0]
-        return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2], input[3], cfg_key, _feat_stride, anchor_scales], [tf.float32]),[-1,5],name =name)
 
+        #test
+        if len(input) == 4:
+            return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2],input[3], [], cfg_key, _feat_stride, anchor_scales], [tf.float32]),[-1,5],name =name)
+
+        #train 
+        if len(input) == 5:
+            return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2],input[3], input[4][4], cfg_key, _feat_stride, anchor_scales], [tf.float32]),[-1,5],name =name)
 
     @layer
     def anchor_target_layer(self, input, _feat_stride, anchor_scales, name):
         if isinstance(input[0], tuple):
             input[0] = input[0][0]
 
+        #chris
+        #print len(input)
+        rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights,rpn_pass_inds = None, None, None, None, None
+        #chris
+
+
         with tf.variable_scope(name) as scope:
 
-            rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights = tf.py_func(anchor_target_layer_py,[input[0],input[1],input[2],input[3], _feat_stride, anchor_scales],[tf.float32, tf.float32,tf.float32,tf.float32])
+            #no reject
+            if len(input) == 4:
+                rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights,rpn_pass_inds = tf.py_func(anchor_target_layer_py,[input[0],input[1],input[2],input[3], [], _feat_stride, anchor_scales],[tf.float32, tf.float32, tf.float32, tf.float32, tf.int64])
+
+            #reject
+            if len(input) == 5:
+                rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights,rpn_pass_inds = tf.py_func(anchor_target_layer_py,[input[0],input[1],input[2],input[3], input[4], _feat_stride, anchor_scales],[tf.float32, tf.float32, tf.float32, tf.float32, tf.int64])
+                
 
             rpn_labels = tf.convert_to_tensor(tf.cast(rpn_labels,tf.int32), name = 'rpn_labels')
             rpn_bbox_targets = tf.convert_to_tensor(rpn_bbox_targets, name = 'rpn_bbox_targets')
             rpn_bbox_inside_weights = tf.convert_to_tensor(rpn_bbox_inside_weights , name = 'rpn_bbox_inside_weights')
             rpn_bbox_outside_weights = tf.convert_to_tensor(rpn_bbox_outside_weights , name = 'rpn_bbox_outside_weights')
-            #all_anchors = tf.convert_to_tensor(all_anchors, name = 'all_anchors')
 
-            return rpn_labels, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights #, all_anchors
+            #get pass index
+            rpn_pass_inds = tf.convert_to_tensor(tf.cast(rpn_pass_inds,tf.int32), name = 'rpn_pass_inds')
+
+            return rpn_labels, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights, rpn_pass_inds #, all_anchors
 
 
     @layer
@@ -274,7 +295,7 @@ class Network(object):
     @layer
     def softmax(self, input, name):
         input_shape = tf.shape(input)
-        if name == 'rpn_cls_prob':
+        if name == 'rpn_cls_prob' or name == 'rpn1_cls_prob' or name =='rpn12_cls_prob':
             return tf.reshape(tf.nn.softmax(tf.reshape(input,[-1,input_shape[3]])),[-1,input_shape[1],input_shape[2],input_shape[3]],name=name)
         else:
             return tf.nn.softmax(input,name=name)
@@ -282,3 +303,26 @@ class Network(object):
     @layer
     def dropout(self, input, keep_prob, name):
         return tf.nn.dropout(input, keep_prob, name=name)
+
+
+    @layer
+    def scoreaddup(self, input, factor, name):
+        if len(input) == 2:            
+            score = tf.add(x = input[0]*factor, y = input[1], name = name)
+            return score
+
+        return None
+
+    @layer
+    def softmaxaddup(self, input, factor, name):
+        if len(input) == 2:            
+            prob = tf.add(x = input[0]*factor, y = input[1], name = name)
+            return prob
+
+        return None
+
+
+
+
+
+
