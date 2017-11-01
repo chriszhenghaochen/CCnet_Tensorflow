@@ -178,9 +178,12 @@ class SolverWrapper(object):
         #chris: Done
 
         #chris: Focal Loss
-        rpn1_cls_score = tf.nn.softmax(rpn1_cls_score)[:,1]
+        length = tf.size(rpn1_label)
+        # #softmax
+        #rpn1_cls_score = tf.nn.softmax(rpn1_cls_score)
+        rpn1_label = tf.one_hot(indices = rpn1_label, depth=2, on_value=1, off_value=0, axis=-1)
         rpn1_label = tf.cast(rpn1_label, tf.float32)
-        rpn1_weights = tf.ones([1, tf.size(rpn1_label)], tf.float32)
+        rpn1_weights = tf.ones([1, length], tf.float32)
         rpn1_cross_entropy = self.fl.compute_loss(prediction_tensor = rpn1_cls_score, target_tensor = rpn1_label, weights = rpn1_weights)
         #chris: Done
 
@@ -456,14 +459,8 @@ def train_net(network, imdb, roidb, output_dir, pretrained_model=None, max_iters
         sw = SolverWrapper(sess, saver, network, imdb, roidb, output_dir, pretrained_model=pretrained_model)
         print 'Solving...'
 
-        #chris
-        #print recall:
-        if printRecall:
-            sw.train_model_recall(sess, max_iters)
-
-        #train
-        else:
-            sw.train_model(sess, max_iters)
+        #train the model
+        sw.train_model(sess, max_iters)
 
         print 'done solving'
 
