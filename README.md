@@ -5,13 +5,13 @@ Replace lib folder in the [***Faster-RCNN_TF***](https://github.com/smallcorgi/F
 now support Tensorflow 1.4.0
 
 # Paper
-	Ouyang, W., Wang, K., Zhu, X., Wang, X. (2017). Chained Cascade Network for Object Detection. International Conference on Computer Vision (ICCV 2017), Italy.
+Ouyang, W., Wang, K., Zhu, X., Wang, X. (2017). Chained Cascade Network for Object Detection. International Conference on Computer Vision (ICCV 2017), Italy.
 
 https://arxiv.org/abs/1702.07054
 
 
 # Result
-Enhance baseline from ***68.1%*** to ***69.5*** (In paper is ***81.9***)
+Enhance baseline from ***68.1%*** to ***69.5%*** (In paper is ***81.9***)
 
 # Fine-Tuning
 In Config file
