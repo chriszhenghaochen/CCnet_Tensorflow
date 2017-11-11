@@ -19,10 +19,10 @@ DEBUG = False
 # reject_number = 3000
 
 #reject factor
-reject_factor = 0.4
+reject_factor = cfg.TEST.REJECT
 
-#chain factor
-factor = 1
+# #chain factor
+# factor = 1
 
 """
 Outputs object detection proposals by applying estimated bounding-box
@@ -58,8 +58,6 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     # print rpn_bbox_pred.shape
     
     #chris
-
-
     #rpn_cls_prob_reshape = np.transpose(np.reshape(rpn_cls_prob_reshape,[1,rpn_cls_prob_reshape.shape[0],rpn_cls_prob_reshape.shape[1],rpn_cls_prob_reshape.shape[2]]),[0,3,2,1])
     #rpn_bbox_pred = np.transpose(rpn_bbox_pred,[0,3,2,1])
     im_info = im_info[0]
@@ -111,6 +109,7 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     # cell K shifts (K, 1, 4) to get
     # shift anchors (K, A, 4)
     # reshape to (K*A, 4) shifted anchors
+
     A = _num_anchors
     K = shifts.shape[0]
     anchors = _anchors.reshape((1, A, 4)) + \
@@ -228,8 +227,6 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     ##----------------------------------------chris: done---------------------------------------------#
 
 
-
-
     # filtering
     # 3. remove predicted boxes with either height or width < threshold
     # (NOTE: convert min_size to input image scale stored in im_info[2])
@@ -238,14 +235,13 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
     #chris 
     #in case cuda error occur
-    if keep == None or keep == []:
+    if keep is None or len(keep) == 0:
         keep = []
         print keep
     #chris
 
     #print 'PROPOSAL ', len(proposals)
     #print 'proposal reject ', len(proposals) - len(keep)
-
     proposals = proposals[keep, :]
     scores = scores[keep]
 
@@ -259,7 +255,6 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     # print proposals.shape
     # #chris
 
-
     # 4. sort all (proposal, score) pairs by score from highest to lowest
     # 5. take top pre_nms_topN (e.g. 6000)
     order = scores.ravel().argsort()[::-1]
@@ -269,7 +264,7 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
     #chris 
     #in case cuda error occur
-    if order == None or order.size == 0:
+    if order is None or order.size == 0:
         order = np.array([0])
         print order
     #chris
@@ -341,7 +336,7 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
         #chris 
         #in case cuda error occur
-        if passinds == None or passinds.size == 0:          
+        if passinds is None or passinds.size == 0:          
             passinds = np.array([0])
             print passinds
         #chris
@@ -363,10 +358,6 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
     #--------------------------chris: only for testing reject!!-----------------------------------#
 
-
-
-
-
     # 6. apply nms (e.g. threshold = 0.7)
     # 7. take after_nms_topN (e.g. 300)
     # 8. return the top proposals (-> RoIs top)
@@ -376,7 +367,7 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
     #chris 
     #in case cuda error occur
-    if keep == None or keep == []:
+    if keep is None or len(keep) == []:
         keep = [0]
     #chris
 
@@ -399,7 +390,6 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     # #chris
     # print blob.shape
     # #chris
-
     return blob
     #top[0].reshape(*(blob.shape))
     #top[0].data[...] = blob

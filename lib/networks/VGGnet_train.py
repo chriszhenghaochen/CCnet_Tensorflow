@@ -1,13 +1,13 @@
 import tensorflow as tf
 from networks.network import Network
-
+from fast_rcnn.config import cfg
 
 #define
 
 n_classes = 21
 _feat_stride = [16,]
 anchor_scales = [8, 16, 32]
-factor = 1
+factor = cfg.TRAIN.FACTOR
 
 class VGGnet_train(Network):
     def __init__(self, trainable=True):
@@ -142,7 +142,7 @@ class VGGnet_train(Network):
 
 
         #chris: proposal add up
-        (self.feed('rpn12_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape')
+        (self.feed('rpn12_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape','rpn-data')
              .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn_rois'))
         #chris
 

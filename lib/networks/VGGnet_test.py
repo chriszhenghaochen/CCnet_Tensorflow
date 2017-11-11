@@ -1,10 +1,11 @@
 import tensorflow as tf
 from networks.network import Network
+from fast_rcnn.config import cfg
 
 n_classes = 21
 _feat_stride = [16,]
 anchor_scales = [8, 16, 32] 
-factor = 2
+factor = cfg.TEST.FACTOR
 
 class VGGnet_test(Network):
     def __init__(self, trainable=True):

@@ -162,11 +162,11 @@ class Network(object):
 
         #test
         if len(input) == 4:
-            return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2],input[3], [], cfg_key, _feat_stride, anchor_scales], [tf.float32]),[-1,5],name =name)
+            return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2],input[3], [], cfg_key, _feat_stride, anchor_scales], tf.float32),[-1,5],name =name)
 
         #train 
         if len(input) == 5:
-            return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2],input[3], input[4][4], cfg_key, _feat_stride, anchor_scales], [tf.float32]),[-1,5],name =name)
+            return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2],input[3], input[4][4], cfg_key, _feat_stride, anchor_scales], tf.float32),[-1,5],name =name)
 
     @layer
     def anchor_target_layer(self, input, _feat_stride, anchor_scales, name):

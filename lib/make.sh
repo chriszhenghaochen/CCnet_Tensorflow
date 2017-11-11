@@ -1,7 +1,8 @@
 TF_INC=$(python -c 'import tensorflow as tf; print(tf.sysconfig.get_include())')
+TF_LIB=$(python -c 'import tensorflow as tf; print(tf.sysconfig.get_lib())')
 
 CUDA_PATH=/usr/local/cuda/
-CXXFLAGS=''
+CXXFLAGS="-L$TF_LIB -ltensorflow_framework"
 
 if [[ "$OSTYPE" =~ ^darwin ]]; then
 	CXXFLAGS+='-undefined dynamic_lookup'

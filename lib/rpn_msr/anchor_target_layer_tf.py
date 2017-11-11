@@ -20,8 +20,9 @@ import pdb
 
 DEBUG = False
 #pass_threshold = 0.3
-reject_factor = 0.5
+reject_factor = cfg.TRAIN.REJECT
 #reject_number = 600
+# reg_overlap = 0.5
 
 def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob_reshape, _feat_stride = [16,], anchor_scales = [4 ,8, 16, 32]):
     """
@@ -196,6 +197,11 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     labels = np.empty((len(inds_inside), ), dtype=np.float32)
     labels.fill(-1)
 
+    # # chris: IMPORTANT set a regression label
+    # reg_labels = np.empty((len(inds_inside), ), dtype=np.float32)
+    # reg_labels.fill(-1)
+
+
     # #chris
     # print 'label shape'
     # print labels.shape
@@ -223,15 +229,30 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
         # assign bg labels first so that positive labels can clobber them
         labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
+        # #chris: IMPORTANT regression label
+        # reg_labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
+
+
     # fg label: for each gt, anchor with highest overlap
     labels[gt_argmax_overlaps] = 1
+
+    # #chris: IMPORTANT regression label
+    # reg_labels[gt_argmax_overlaps] = 1
 
     # fg label: above threshold IOU
     labels[max_overlaps >= cfg.TRAIN.RPN_POSITIVE_OVERLAP] = 1
 
+    # #chris: IMPORTANT new regression overlap
+    # reg_labels[max_overlaps >= reg_overlap] = 1
+
+
     if cfg.TRAIN.RPN_CLOBBER_POSITIVES:
         # assign bg labels last so that negative labels can clobber positives
         labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
+
+        # #chris: IMPORTANT regression label
+        # reg_labels[max_overlaps < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
+
 
 
     # #chris
@@ -359,11 +380,14 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     # #this is original way -> random
 
     #set this for restrict
-    if pre_rpn_cls_prob_reshape != []:
+    if cfg.TRAIN.RPN_OHEM and pre_rpn_cls_prob_reshape != []:
         if len(fg_inds) > num_fg:
             disable_inds = npr.choice(
                 fg_inds, size=(len(fg_inds) - num_fg), replace=False)
             labels[disable_inds] = -1
+
+            # #chris: IMPORTANT regression label
+            # reg_labels[disable_inds] = -1
 
     # #chris: new way - hard core focal loss
     # if len(fg_inds) > num_fg:
@@ -378,13 +402,17 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
 
     # #this is original way -> random
         #set this for restrict
-    if pre_rpn_cls_prob_reshape != []:
+    if cfg.TRAIN.RPN_OHEM and pre_rpn_cls_prob_reshape != []:
         if len(bg_inds) > num_bg:
             disable_inds = npr.choice(
                 bg_inds, size=(len(bg_inds) - num_bg), replace=False)
 
             #print disable_inds
             labels[disable_inds] = -1
+
+            # #chris: IMPORTANT regression label
+            # reg_labels[disable_inds] = -1
+
             #print "was %s inds, disabling %s, now %s inds" % (
                 #len(bg_inds), len(disable_inds), np.sum(labels == 0))
     
@@ -431,7 +459,12 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     bbox_targets = _compute_targets(anchors, gt_boxes[argmax_overlaps, :])
 
     bbox_inside_weights = np.zeros((len(inds_inside), 4), dtype=np.float32)
+
+    #original regression
     bbox_inside_weights[labels == 1, :] = np.array(cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS)
+
+    # #chris: new regression
+    # bbox_inside_weights[reg_labels == 1, :] = np.array(cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS)
 
     bbox_outside_weights = np.zeros((len(inds_inside), 4), dtype=np.float32)
     if cfg.TRAIN.RPN_POSITIVE_WEIGHT < 0:

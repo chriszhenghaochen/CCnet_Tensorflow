@@ -66,7 +66,10 @@ __C.TRAIN.MAX_SIZE = 1000
 __C.TRAIN.IMS_PER_BATCH = 2
 
 # Minibatch size (number of regions of interest [ROIs])
-__C.TRAIN.BATCH_SIZE = 128
+#__C.TRAIN.BATCH_SIZE = 128
+
+#chris
+__C.TRAIN.BATCH_SIZE = 256
 
 # Fraction of minibatch that is labeled foreground (i.e. class > 0)
 __C.TRAIN.FG_FRACTION = 0.25
@@ -131,6 +134,8 @@ __C.TRAIN.RPN_CLOBBER_POSITIVES = False
 __C.TRAIN.RPN_FG_FRACTION = 0.5
 # Total number of examples
 __C.TRAIN.RPN_BATCHSIZE = 256
+#chris
+# __C.TRAIN.RPN_BATCHSIZE = 512
 # NMS threshold used on RPN proposals
 __C.TRAIN.RPN_NMS_THRESH = 0.7
 # Number of top scoring boxes to keep before apply NMS to RPN proposals
@@ -148,6 +153,16 @@ __C.TRAIN.RPN_POSITIVE_WEIGHT = -1.0
 
 # Enable timeline generation
 __C.TRAIN.DEBUG_TIMELINE = False
+
+
+# CCNet Config
+#Enable OHEM
+__C.TRAIN.RPN_OHEM = True
+__C.TRAIN.FACTOR = 1
+__C.TRAIN.REJECT = 0.3
+__C.TEST.FACTOR = 1
+__C.TEST.REJECT = 0
+__C.TRAIN.LOSS = 'Focal Loss'
 
 #
 # Testing options
