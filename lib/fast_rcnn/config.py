@@ -155,15 +155,6 @@ __C.TRAIN.RPN_POSITIVE_WEIGHT = -1.0
 __C.TRAIN.DEBUG_TIMELINE = False
 
 
-# CCNet Config
-#Enable OHEM
-__C.TRAIN.RPN_OHEM = True
-__C.TRAIN.FACTOR = 1
-__C.TRAIN.REJECT = 0.3
-__C.TEST.FACTOR = 1
-__C.TEST.REJECT = 0
-__C.TRAIN.LOSS = 'Focal Loss'
-
 #
 # Testing options
 #
@@ -207,6 +198,18 @@ __C.TEST.RPN_MIN_SIZE = 16
 
 # Enable timeline generation
 __C.TEST.DEBUG_TIMELINE = False
+
+
+
+###### CCNet Config #######
+#Enable OHEM
+__C.TRAIN.RPN_OHEM = True
+__C.TRAIN.FACTOR = 1
+__C.TRAIN.REJECT = 0.3
+__C.TEST.FACTOR = 1
+__C.TEST.REJECT = 0.3
+__C.TRAIN.LOSS = 'Focal Loss'
+############################
 
 #
 # MISC

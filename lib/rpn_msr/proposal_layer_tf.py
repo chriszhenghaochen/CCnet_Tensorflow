@@ -165,7 +165,7 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
 
     ##-------------------------------------chris: Reject for Train------------------------------------#
-    if cfg_key == 'TRAIN' and pass_inds != []:
+    if cfg_key == 'TRAIN' and pass_inds.size != 0:
 
 
         # # ----------------------------------chris: biggest change happens here----------------------------------------#
@@ -279,7 +279,7 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
 
     #--------------------------chris: only for testing reject!!-----------------------------------#
-    if cfg_key == 'TEST' and pre_rpn_cls_prob_reshape != None:
+    if cfg_key == 'TEST' and pre_rpn_cls_prob_reshape is not None:
 
         # # ----------------------------------chris: biggest change happens here----------------------------------------#
         # #combine SCORE
