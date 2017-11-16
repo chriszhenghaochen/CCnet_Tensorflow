@@ -32,7 +32,7 @@ transformations to a set of regular boxes (called "anchors").
 
 
 #chris: I change this for reject!!!
-def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_reshape,pass_inds,cfg_key,_feat_stride = [16,],anchor_scales = [8, 16, 32]):
+def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_reshape,pre_bbox_pred,pass_inds,cfg_key,_feat_stride = [16,],anchor_scales = [8, 16, 32]):
     # Algorithm:
     #
     # for each (H, W) location i
@@ -133,7 +133,22 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
     scores = scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
 
 
+    ##----------------------------------chris: regression add up-----------------------------------##
+    if pre_bbox_pred.size != 0:
 
+        #chris: preprocess box_pred
+        pre_bbox_pred = np.transpose(pre_bbox_pred,[0,3,1,2])
+        pre_bbox_pred = pre_bbox_pred.transpose((0, 2, 3, 1)).reshape((-1, 4))
+        #chris
+
+        # print 'anchors 1 ',anchors 
+
+        #chris: use previous layer
+        anchors = bbox_transform_inv(anchors, pre_bbox_pred)
+        #chris
+
+        # print 'anchors 2 ',anchors 
+    ##----------------------------------------chris------------------------------------------------##
 
     
     #print 'SCORE' , scores
@@ -147,6 +162,11 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
     # Convert anchors into proposals via bbox transformations
     proposals = bbox_transform_inv(anchors, bbox_deltas)
+
+    # #chris:
+    # print 'faster rcnn anchors ', anchors
+    # print 'faster rcnn proposal ', proposals
+    # #chris
 
     ##chris
     #print 'len', len(proposals)

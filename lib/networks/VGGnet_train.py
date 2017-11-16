@@ -107,7 +107,7 @@ class VGGnet_train(Network):
 
         #chris
         #cascade here
-        (self.feed('rpn_cls_score','gt_boxes','im_info','data', 'rpn1_cls_prob_reshape')
+        (self.feed('rpn_cls_score','gt_boxes','im_info','data', 'rpn1_cls_prob_reshape', 'rpn1_bbox_pred')
              .anchor_target_layer(_feat_stride, anchor_scales, name = 'rpn-data'))
         #chris
 
@@ -136,19 +136,28 @@ class VGGnet_train(Network):
              .scoreaddup(factor, name = 'rpn12_cls_score_reshape')
              .softmax(name='rpn12_cls_prob'))
 
+
+
         (self.feed('rpn12_cls_prob')
              .reshape_layer(len(anchor_scales)*3*2,name = 'rpn12_cls_prob_reshape'))
         #chris
 
 
-        #chris: proposal add up
-        (self.feed('rpn12_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape','rpn-data')
+        # #chris: proposal score add up
+        # (self.feed('rpn12_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape','rpn-data')
+        #      .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn_rois'))
+        # #chris
+
+
+        #chris: proposal score and regression add up
+        (self.feed('rpn12_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape', 'rpn1_bbox_pred', 'rpn-data')
              .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn_rois'))
         #chris
 
-
+        #chris: original proposal
         # (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape','rpn-data')
         #      .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn_rois'))
+        #chris
 
 
         (self.feed('rpn_rois','gt_boxes')

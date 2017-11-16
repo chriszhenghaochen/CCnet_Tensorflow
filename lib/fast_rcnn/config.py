@@ -69,10 +69,13 @@ __C.TRAIN.IMS_PER_BATCH = 2
 #__C.TRAIN.BATCH_SIZE = 128
 
 #chris
-__C.TRAIN.BATCH_SIZE = 256
+__C.TRAIN.BATCH_SIZE = 32
 
-# Fraction of minibatch that is labeled foreground (i.e. class > 0)
-__C.TRAIN.FG_FRACTION = 0.25
+# # Fraction of minibatch that is labeled foreground (i.e. class > 0)
+# __C.TRAIN.FG_FRACTION = 0.25
+
+#chris
+__C.TRAIN.FG_FRACTION = 0.5
 
 # Overlap threshold for a ROI to be considered foreground (if >= FG_THRESH)
 __C.TRAIN.FG_THRESH = 0.5
@@ -133,9 +136,9 @@ __C.TRAIN.RPN_CLOBBER_POSITIVES = False
 # Max number of foreground examples
 __C.TRAIN.RPN_FG_FRACTION = 0.5
 # Total number of examples
-__C.TRAIN.RPN_BATCHSIZE = 256
+# __C.TRAIN.RPN_BATCHSIZE = 256
 #chris
-# __C.TRAIN.RPN_BATCHSIZE = 512
+__C.TRAIN.RPN_BATCHSIZE = 64
 # NMS threshold used on RPN proposals
 __C.TRAIN.RPN_NMS_THRESH = 0.7
 # Number of top scoring boxes to keep before apply NMS to RPN proposals
@@ -207,7 +210,7 @@ __C.TRAIN.RPN_OHEM = True
 __C.TRAIN.FACTOR = 1
 __C.TRAIN.REJECT = 0.3
 __C.TEST.FACTOR = 1
-__C.TEST.REJECT = 0.3
+__C.TEST.REJECT = 0
 __C.TRAIN.LOSS = 'Focal Loss'
 ############################
 

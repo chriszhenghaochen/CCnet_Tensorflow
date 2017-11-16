@@ -193,10 +193,48 @@ class SolverWrapper(object):
 
         data_layer = get_data_layer(self.roidb, self.imdb.num_classes)
 
-        #chris
-        # RPN-1
+        # #chris
+        # # RPN-0
+        # # # classification loss
+        # rpn0_cls_score = tf.reshape(self.net.get_output('rpn0_cls_score_reshape'),[-1,2])
+        # rpn0_label = tf.reshape(self.net.get_output('rpn0-data')[0],[-1])
+        # rpn0_cls_score = tf.reshape(tf.gather(rpn0_cls_score,tf.where(tf.not_equal(rpn0_label,-1))),[-1,2])
+        # rpn0_label = tf.reshape(tf.gather(rpn0_label,tf.where(tf.not_equal(rpn0_label,-1))),[-1])
+
+        # #chris: Regular loss
+        # #rpn1_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn1_cls_score, labels=rpn1_label))
+        # #chris: Done
+
+        # #chris: Focal Loss
+        # length = tf.size(rpn0_label)
+        # # #softmax
+        # #rpn1_cls_score = tf.nn.softmax(rpn1_cls_score)
+        # rpn0_label = tf.one_hot(indices = rpn0_label, depth=2, on_value=1, off_value=0, axis=-1)
+        # rpn0_label = tf.cast(rpn0_label, tf.float32)
+        # rpn0_weights = tf.ones([1, length], tf.float32)
+        # rpn0_cross_entropy = self.fl.compute_loss(prediction_tensor = rpn0_cls_score, target_tensor = rpn0_label, weights = rpn0_weights)
+        # #rpn1_cross_entropy = self.focal_loss(prediction_tensor = rpn1_cls_score, target_tensor = rpn1_label, alpha = 0.5)
+        # #chris: Done
+
+        # # # bounding box regression L1 loss
+        # # rpn1_bbox_pred = self.net.get_output('rpn1_bbox_pred')
+        # # rpn1_bbox_targets = tf.transpose(self.net.get_output('rpn1-data')[1],[0,2,3,1])
+        # # rpn1_bbox_inside_weights = tf.transpose(self.net.get_output('rpn1-data')[2],[0,2,3,1])
+        # # rpn1_bbox_outside_weights = tf.transpose(self.net.get_output('rpn1-data')[3],[0,2,3,1])
+
+        # # rpn1_smooth_l1 = self._modified_smooth_l1(3.0, rpn1_bbox_pred, rpn1_bbox_targets, rpn1_bbox_inside_weights, rpn1_bbox_outside_weights)
+        # # rpn1_loss_box = tf.reduce_mean(tf.reduce_sum(rpn1_smooth_l1, reduction_indices=[1, 2, 3]))
+        # # #chris
+        # # chris
+
+
+
+
+
+        ##--------------------------------------------RPN-1-----------------------------------------------------------##
         # # classification loss
         rpn1_cls_score = tf.reshape(self.net.get_output('rpn1_cls_score_reshape'),[-1,2])
+        # rpn1_cls_score = tf.reshape(self.net.get_output('rpn01_cls_score_reshape'),[-1,2])
         rpn1_label = tf.reshape(self.net.get_output('rpn1-data')[0],[-1])
         rpn1_cls_score = tf.reshape(tf.gather(rpn1_cls_score,tf.where(tf.not_equal(rpn1_label,-1))),[-1,2])
         rpn1_label = tf.reshape(tf.gather(rpn1_label,tf.where(tf.not_equal(rpn1_label,-1))),[-1])
@@ -207,8 +245,6 @@ class SolverWrapper(object):
 
         #chris: Focal Loss
         length = tf.size(rpn1_label)
-        # #softmax
-        #rpn1_cls_score = tf.nn.softmax(rpn1_cls_score)
         rpn1_label = tf.one_hot(indices = rpn1_label, depth=2, on_value=1, off_value=0, axis=-1)
         rpn1_label = tf.cast(rpn1_label, tf.float32)
         rpn1_weights = tf.ones([1, length], tf.float32)
@@ -217,23 +253,20 @@ class SolverWrapper(object):
         #chris: Done
 
 
+        # bounding box regression L1 loss
+        rpn1_bbox_pred = self.net.get_output('rpn1_bbox_pred')
+        rpn1_bbox_targets = tf.transpose(self.net.get_output('rpn1-data')[1],[0,2,3,1])
+        rpn1_bbox_inside_weights = tf.transpose(self.net.get_output('rpn1-data')[2],[0,2,3,1])
+        rpn1_bbox_outside_weights = tf.transpose(self.net.get_output('rpn1-data')[3],[0,2,3,1])
 
-        # chris: 
-        #I don't need that
-        # # bounding box regression L1 loss
-        # rpn1_bbox_pred = self.net.get_output('rpn1_bbox_pred')
-        # rpn1_bbox_targets = tf.transpose(self.net.get_output('rpn1-data')[1],[0,2,3,1])
-        # rpn1_bbox_inside_weights = tf.transpose(self.net.get_output('rpn1-data')[2],[0,2,3,1])
-        # rpn1_bbox_outside_weights = tf.transpose(self.net.get_output('rpn1-data')[3],[0,2,3,1])
-
-        # rpn1_smooth_l1 = self._modified_smooth_l1(3.0, rpn1_bbox_pred, rpn1_bbox_targets, rpn1_bbox_inside_weights, rpn1_bbox_outside_weights)
-        # rpn1_loss_box = tf.reduce_mean(tf.reduce_sum(rpn1_smooth_l1, reduction_indices=[1, 2, 3]))
-        # #chris
-        # chris
+        rpn1_smooth_l1 = self._modified_smooth_l1(3.0, rpn1_bbox_pred, rpn1_bbox_targets, rpn1_bbox_inside_weights, rpn1_bbox_outside_weights)
+        rpn1_loss_box = tf.reduce_mean(tf.reduce_sum(rpn1_smooth_l1, reduction_indices=[1, 2, 3]))
 
 
 
-        ## RPN
+
+
+        ##--------------------------------------------RPN-2-----------------------------------------------------------##
         ## classification loss
         #chris: use original score
         #rpn_cls_score = tf.reshape(self.net.get_output('rpn_cls_score_reshape'),[-1,2])
@@ -248,28 +281,19 @@ class SolverWrapper(object):
         #chris: reject here
         rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score,tf.where(tf.not_equal(rpn_label,-2))),[-1,2])
         rpn_label = tf.reshape(tf.gather(rpn_label,tf.where(tf.not_equal(rpn_label,-2))),[-1])
-        #rejct done
+        #chris: rejct done
 
-        #original loss
-        rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
+        # #chris: regular loss
+        # rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
+        # #chris: done
 
-
-        # #chris: second Focal Loss
-        # length = tf.size(rpn_label)
-        # rpn_label = tf.one_hot(indices = rpn_label, depth=2, on_value=1, off_value=0, axis=-1)
-        # rpn_label = tf.cast(rpn_label, tf.float32)
-        # rpn_weights = tf.ones([1, length], tf.float32)
-        # rpn_cross_entropy = self.fl.compute_loss(prediction_tensor = rpn_cls_score, target_tensor = rpn_label, weights = rpn_weights)
-        # #chris: Done
-
-       
-
-        # #----------------------chris RPN Reject-----------------------#
-        # rpn_label_reject = tf.reshape(self.net.get_output('rpn-data-reject')[0],[-1])
-        # rpn_cls_score_reject = tf.reshape(tf.gather(rpn_cls_score,tf.where(tf.not_equal(rpn_label_reject,-1))),[-1,2])
-        # rpn_label_reject = tf.reshape(tf.gather(rpn_label_reject,tf.where(tf.not_equal(rpn_label_reject,-1))),[-1])
-        # rpn_cross_entropy_reject = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score_reject, labels=rpn_label_reject))
-
+        #chris: second Focal Loss
+        length = tf.size(rpn_label)
+        rpn_label = tf.one_hot(indices = rpn_label, depth=2, on_value=1, off_value=0, axis=-1)
+        rpn_label = tf.cast(rpn_label, tf.float32)
+        rpn_weights = tf.ones([1, length], tf.float32)
+        rpn_cross_entropy = self.fl.compute_loss(prediction_tensor = rpn_cls_score, target_tensor = rpn_label, weights = rpn_weights)
+        #chris: Done
 
 
         # bounding box regression L1 loss
@@ -281,7 +305,10 @@ class SolverWrapper(object):
         rpn_smooth_l1 = self._modified_smooth_l1(3.0, rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights)
         rpn_loss_box = tf.reduce_mean(tf.reduce_sum(rpn_smooth_l1, reduction_indices=[1, 2, 3]))
  
-        # R-CNN
+
+
+
+        ##----------------------------------------------R-CNN--------------------------------------------------------##
         # classification loss
         cls_score = self.net.get_output('cls_score')
         label = tf.reshape(self.net.get_output('roi-data')[1],[-1])
@@ -296,21 +323,21 @@ class SolverWrapper(object):
         smooth_l1 = self._modified_smooth_l1(1.0, bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
         loss_box = tf.reduce_mean(tf.reduce_sum(smooth_l1, reduction_indices=[1]))
 
-        # final loss
-        #chris I comment that
-        #loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
-        #chris
-
-        #chris
-        #this is the new loss
-        loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + rpn1_cross_entropy
-        #chris
-
+        # #final loss
+        # #chris: original loss
+        # loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
+        # #chris
 
         # #chris
-        # #this is for reject loss
-        # loss_reject = cross_entropy + loss_box + rpn_cross_entropy_reject + rpn_loss_box + rpn1_cross_entropy
+        # #new loss - rpn 1 classification
+        # loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + rpn1_cross_entropy
         # #chris
+
+
+        # chris
+        # #new loss - rpn 1 classification + rpn 1 regression
+        loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + rpn1_cross_entropy + rpn1_loss_box
+        #chris
 
 
         # optimizer and learning rate
@@ -320,10 +347,6 @@ class SolverWrapper(object):
         momentum = cfg.TRAIN.MOMENTUM
         train_op = tf.train.MomentumOptimizer(lr, momentum).minimize(loss, global_step=global_step)
 
-        # #chris
-        # #reject train op:
-        # train_op_reject = tf.train.MomentumOptimizer(lr, momentum).minimize(loss_reject, global_step=global_step)
-        # #chris
 
         # iintialize variables
         sess.run(tf.global_variables_initializer())
@@ -358,45 +381,31 @@ class SolverWrapper(object):
             #chris
 
 
-            # #chris 
-            # #new BP
-            # rpn1_loss_cls_value, rpn1_loss_box_value, rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn1_cross_entropy, rpn1_loss_box, rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
-            #                                                                                     feed_dict=feed_dict,
-            #                                                                                     options=run_options,
-            #                                                                                     run_metadata=run_metadata)
-            # #chris
-
-            #-------------------------------------------------chris: new BP CLS ONLY---------------------------------------------------#
-            rpn1_loss_cls_value, rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn1_cross_entropy, rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
+            # #-------------------------------------------------chris: new BP CLS + REGRESSION---------------------------------------------------#
+            rpn1_loss_cls_value, rpn1_loss_box_value, rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn1_cross_entropy, rpn1_loss_box, rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
                                                                                                 feed_dict=feed_dict,
                                                                                                 options=run_options,
                                                                                                 run_metadata=run_metadata)
+            #chris
 
-            #-------------------------------------------------------chris---------------------------------------------------#
-
-            #debug only
             # #-------------------------------------------------chris: new BP CLS ONLY---------------------------------------------------#
-            # a,b,c = sess.run([tf.reshape(self.net.get_output('rpn_cls_score_reshape'),[-1,2]), tf.reshape(self.net.get_output('rpn1_cls_score_reshape'),[-1,2]), tf.reshape(self.net.get_output('rpn12_cls_score_reshape'),[-1,2])],
+            # rpn1_loss_cls_value, rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn1_cross_entropy, rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
             #                                                                                     feed_dict=feed_dict,
             #                                                                                     options=run_options,
             #                                                                                     run_metadata=run_metadata)
 
             # #-------------------------------------------------------chris---------------------------------------------------#
-            # print '1 ', a[:10]
-            # print '2 ', b[:10]
-            # print '3 ', c[:10]
-            # #debug done
 
 
             # #-------------------------------------------------Debug ONLY---------------------------------------------------#
-            # a, b, c = sess.run([rpn1_cls_score, rpn1_label, rpn1_weights],
+            # a = sess.run([self.net.get_output('rpn_bbox_pred')],
             #                                                                                     feed_dict=feed_dict,
             #                                                                                     options=run_options,
             #                                                                                     run_metadata=run_metadata)
 
             # #-------------------------------------------------------chris---------------------------------------------------#
 
-            # print a
+            # print np.asarray(a).shape
             # print b
             # print c
 
@@ -409,14 +418,14 @@ class SolverWrapper(object):
                 trace_file.close()
 
             if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
-                print 'iter: %d / %d, total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, lr: %f'%\
-                        (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value + loss_cls_value + loss_box_value ,rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, lr.eval())
+                print 'iter: %d / %d, total loss: %.4f, rpn1_loss_cls: %.4f, rpn1_loss_box: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, lr: %f'%\
+                        (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value + loss_cls_value + loss_box_value , rpn1_loss_cls_value, rpn1_loss_box_value, rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, lr.eval())
                 print 'speed: {:.3f}s / iter'.format(timer.average_time)
 
-                #chris
-                print 'rpn1_loss_cls: %.4f'%\
-                        (rpn1_loss_cls_value)
-                #chris
+                # #chris
+                # print 'rpn1_loss_cls: %.4f'%\
+                #         (rpn1_loss_cls_value)
+                # #chris
 
 
 

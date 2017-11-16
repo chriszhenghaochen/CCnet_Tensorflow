@@ -13,6 +13,7 @@ import numpy.random as npr
 from generate_anchors import generate_anchors
 from utils.cython_bbox import bbox_overlaps
 from fast_rcnn.bbox_transform import bbox_transform
+from fast_rcnn.bbox_transform import bbox_transform_inv, clip_boxes
 import pdb
 
 
@@ -24,7 +25,7 @@ reject_factor = cfg.TRAIN.REJECT
 #reject_number = 600
 # reg_overlap = 0.5
 
-def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob_reshape, _feat_stride = [16,], anchor_scales = [4 ,8, 16, 32]):
+def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob_reshape, pre_bbox_pred, pre_pass_inds, _feat_stride = [16,], anchor_scales = [4 ,8, 16, 32]):
     """
     Assign anchors to ground-truth targets. Produces anchor classification
     labels and bounding-box regression targets.
@@ -44,10 +45,14 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     # #chris
 
 
-
-
     _anchors = generate_anchors(scales=np.array(anchor_scales))
     _num_anchors = _anchors.shape[0]
+
+
+    # #chris:
+    # print _anchors
+    # print pre_bbox_pred
+    # #chris
 
     if DEBUG:
         print 'anchors:'
@@ -120,6 +125,28 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     all_anchors = all_anchors.reshape((K * A, 4))
     total_anchors = int(K * A)
 
+   
+    ##----------------------------------chris: regression add up-----------------------------------##
+    if pre_bbox_pred.size != 0:
+
+        #chris: preprocess box_pred
+        pre_bbox_pred = np.transpose(pre_bbox_pred,[0,3,1,2])
+        bbox_deltas = pre_bbox_pred
+        bbox_deltas = bbox_deltas.transpose((0, 2, 3, 1)).reshape((-1, 4))
+        #chris
+
+        #chris: use previous layer
+        proposals = bbox_transform_inv(all_anchors, bbox_deltas)
+        #chris
+
+        # print 'anchors', all_anchors
+
+        all_anchors = proposals
+
+        # print 'proposals', all_anchors
+        
+    ##----------------------------------------chris------------------------------------------------##
+
     # # #chris -get number of anchors
     # print 'score shape' , rpn_cls_score.shape
     # print 'reshape ', pre_rpn_cls_prob_reshape.shape
@@ -142,7 +169,11 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     )[0]
 
 
-    #
+    # #chris:
+    # print _allowed_border
+    # print im_info[1] 
+    # print im_info[0] 
+    # #chris
 
     # #chris
     # print 'total_anchors ', total_anchors
@@ -264,7 +295,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
 
 
     #--------------------------------------------------reject here----------------------------------------#
-    if pre_rpn_cls_prob_reshape != []:
+    if pre_rpn_cls_prob_reshape.size != 0:
 
         # #chris
         # print 'All Anchor Before Reject'
@@ -278,7 +309,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
         pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
         
 
-        ##---------------------------reject via set label to be -1 ---------------------#
+        ##---------------------------reject via set label to be -2 ---------------------#
         #do this before reject, wipe out the over boundary
         pre_scores = pre_scores[inds_inside]
         #done 
@@ -458,6 +489,10 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     bbox_targets = np.zeros((len(inds_inside), 4), dtype=np.float32)
     bbox_targets = _compute_targets(anchors, gt_boxes[argmax_overlaps, :])
 
+    #chris
+    #print 'target ', bbox_targets
+    #chris
+
     bbox_inside_weights = np.zeros((len(inds_inside), 4), dtype=np.float32)
 
     #original regression
@@ -493,6 +528,11 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
         print 'stdevs:'
         print stds
 
+    # #chris    
+    #print 'inside ', bbox_inside_weights 
+    #print 'outside ', bbox_outside_weights
+    # #chris
+
     # map up to original set of anchors
     labels = _unmap(labels, total_anchors, inds_inside, fill=-1)
     bbox_targets = _unmap(bbox_targets, total_anchors, inds_inside, fill=0)
@@ -503,10 +543,12 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
     #chris: get reject inds after umap   
     final_pass_inds = np.where(labels != -2)[0]
 
+    # #process reject index
+    # final_rej_inds = np.where(labels == -2)[0]
+
     #print total_anchors
     #print len(final_pass_inds)
     #chris: done
-
 
 
     if DEBUG:

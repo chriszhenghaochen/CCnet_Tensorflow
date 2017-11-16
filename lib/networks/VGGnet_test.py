@@ -87,20 +87,28 @@ class VGGnet_test(Network):
              .scoreaddup(factor, name = 'rpn12_cls_score_reshape')
              .softmax(name='rpn12_cls_prob'))
 
+
         (self.feed('rpn12_cls_prob')
              .reshape_layer(len(anchor_scales)*3*2,name = 'rpn12_cls_prob_reshape'))
         #chris
 
 
-        #chris: proposal add up
-        (self.feed('rpn12_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape')
+        # #chris: proposal reject
+        # (self.feed('rpn12_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape')
+        #      .proposal_layer(_feat_stride, anchor_scales, 'TEST',name = 'rois'))
+
+        # #chris
+
+        #chris: proposal reject and regression add up
+        (self.feed('rpn12_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape', 'rpn1_bbox_pred')
              .proposal_layer(_feat_stride, anchor_scales, 'TEST',name = 'rois'))
 
         #chris
 
-        
+        # #chris: original proposal  
         # (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info', 'rpn1_cls_prob_reshape')
         #      .proposal_layer(_feat_stride, anchor_scales, 'TEST', name = 'rois'))
+        #chris
 
         
         (self.feed('conv5_3', 'rois')

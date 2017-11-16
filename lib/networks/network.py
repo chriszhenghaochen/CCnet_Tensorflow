@@ -160,13 +160,17 @@ class Network(object):
         if isinstance(input[0], tuple):
             input[0] = input[0][0]
 
-        #test
+        #original
         if len(input) == 4:
-            return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2],input[3], [], cfg_key, _feat_stride, anchor_scales], tf.float32),[-1,5],name =name)
+            return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2],input[3],[],[], cfg_key, _feat_stride, anchor_scales], tf.float32),[-1,5],name =name)
 
-        #train 
+        #regression add up
         if len(input) == 5:
-            return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2],input[3], input[4][4], cfg_key, _feat_stride, anchor_scales], tf.float32),[-1,5],name =name)
+            return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2],input[3],input[4],[], cfg_key, _feat_stride, anchor_scales], tf.float32),[-1,5],name =name)
+
+        #regression add up and train with passinds
+        if len(input) == 6:
+            return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2],input[3],input[4],input[5][4], cfg_key, _feat_stride, anchor_scales], tf.float32),[-1,5],name =name)
 
     @layer
     def anchor_target_layer(self, input, _feat_stride, anchor_scales, name):
@@ -183,12 +187,20 @@ class Network(object):
 
             #no reject
             if len(input) == 4:
-                rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights,rpn_pass_inds = tf.py_func(anchor_target_layer_py,[input[0],input[1],input[2],input[3], [], _feat_stride, anchor_scales],[tf.float32, tf.float32, tf.float32, tf.float32, tf.int64])
+                rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights,rpn_pass_inds = tf.py_func(anchor_target_layer_py,[input[0],input[1],input[2],input[3], [], [], [],_feat_stride, anchor_scales],[tf.float32, tf.float32, tf.float32, tf.float32, tf.int64])
 
             #reject
             if len(input) == 5:
-                rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights,rpn_pass_inds = tf.py_func(anchor_target_layer_py,[input[0],input[1],input[2],input[3], input[4], _feat_stride, anchor_scales],[tf.float32, tf.float32, tf.float32, tf.float32, tf.int64])
-                
+                rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights,rpn_pass_inds = tf.py_func(anchor_target_layer_py,[input[0],input[1],input[2],input[3], input[4], [], [], _feat_stride, anchor_scales],[tf.float32, tf.float32, tf.float32, tf.float32, tf.int64])
+
+            #reject and regression add up
+            if len(input) == 6:
+                rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights,rpn_pass_inds = tf.py_func(anchor_target_layer_py,[input[0],input[1],input[2],input[3], input[4], input[5], [], _feat_stride, anchor_scales],[tf.float32, tf.float32, tf.float32, tf.float32, tf.int64])
+
+            #reject and regression add up and pass inds
+            if len(input) == 7:
+                rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights,rpn_pass_inds = tf.py_func(anchor_target_layer_py,[input[0],input[1],input[2],input[3], input[4], input[5], input[6][4], _feat_stride, anchor_scales],[tf.float32, tf.float32, tf.float32, tf.float32, tf.int64])
+                    
 
             rpn_labels = tf.convert_to_tensor(tf.cast(rpn_labels,tf.int32), name = 'rpn_labels')
             rpn_bbox_targets = tf.convert_to_tensor(rpn_bbox_targets, name = 'rpn_bbox_targets')
@@ -317,6 +329,14 @@ class Network(object):
     def softmaxaddup(self, input, factor, name):
         if len(input) == 2:            
             prob = tf.add(x = input[0]*factor, y = input[1], name = name)
+            return prob
+
+        return None
+
+    @layer 
+    def scoremul(self, input, factor, name):
+        if len(input) == 2:            
+            prob = tf.multiply(x = input[0]*factor, y = input[1], name = name)
             return prob
 
         return None
