@@ -11,7 +11,7 @@ https://arxiv.org/abs/1702.07054
 
 
 # Result
-Enhance baseline from ***68.1%*** to ***70.1%*** (In paper is 81.9%)
+Enhance baseline from ***68.1%*** to ***70.5%*** (In paper is 81.9%)
 
 # Fine-Tuning
 In Config file
