@@ -20,10 +20,18 @@ In Config file
 ###### CCNet Config #######
 #Enable OHEM
 __C.TRAIN.RPN_OHEM = True
-__C.TRAIN.FACTOR = 1
+
+#train setting
+__C.TRAIN.boxChain = False
+__C.TRAIN.FACTOR = 0
 __C.TRAIN.REJECT = 0.3
-__C.TEST.FACTOR = 1
-__C.TEST.REJECT = 0
+
+#test setting
+__C.TEST.FACTOR = 0
+__C.TEST.REJECT = 0.3
+__C.TEST.boxChain = False
+
+#loss
 __C.TRAIN.LOSS = 'Focal Loss'
 ############################
 ```
