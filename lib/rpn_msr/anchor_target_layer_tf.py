@@ -22,6 +22,7 @@ import pdb
 DEBUG = False
 #pass_threshold = 0.3
 reject_factor = cfg.TRAIN.REJECT
+boxChain = cfg.TRAIN.boxChain
 #reject_number = 600
 # reg_overlap = 0.5
 
@@ -127,7 +128,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, pre_rpn_cls_prob
 
    
     ##----------------------------------chris: regression add up-----------------------------------##
-    if pre_bbox_pred.size != 0:
+    if pre_bbox_pred.size != 0 and boxChain == True:
 
         #chris: preprocess box_pred
         pre_bbox_pred = np.transpose(pre_bbox_pred,[0,3,1,2])

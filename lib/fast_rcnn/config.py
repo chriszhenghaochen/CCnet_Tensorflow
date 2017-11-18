@@ -66,16 +66,16 @@ __C.TRAIN.MAX_SIZE = 1000
 __C.TRAIN.IMS_PER_BATCH = 2
 
 # Minibatch size (number of regions of interest [ROIs])
-#__C.TRAIN.BATCH_SIZE = 128
+# __C.TRAIN.BATCH_SIZE = 128
 
-#chris
-__C.TRAIN.BATCH_SIZE = 32
+# chris
+__C.TRAIN.BATCH_SIZE = 256
 
 # # Fraction of minibatch that is labeled foreground (i.e. class > 0)
-# __C.TRAIN.FG_FRACTION = 0.25
+__C.TRAIN.FG_FRACTION = 0.25
 
-#chris
-__C.TRAIN.FG_FRACTION = 0.5
+# #chris
+# __C.TRAIN.FG_FRACTION = 0.35
 
 # Overlap threshold for a ROI to be considered foreground (if >= FG_THRESH)
 __C.TRAIN.FG_THRESH = 0.5
@@ -135,10 +135,12 @@ __C.TRAIN.RPN_NEGATIVE_OVERLAP = 0.3
 __C.TRAIN.RPN_CLOBBER_POSITIVES = False
 # Max number of foreground examples
 __C.TRAIN.RPN_FG_FRACTION = 0.5
+# chris
+# __C.TRAIN.RPN_FG_FRACTION = 0.45
 # Total number of examples
-# __C.TRAIN.RPN_BATCHSIZE = 256
-#chris
-__C.TRAIN.RPN_BATCHSIZE = 64
+__C.TRAIN.RPN_BATCHSIZE = 256
+# #chris
+# __C.TRAIN.RPN_BATCHSIZE = 128
 # NMS threshold used on RPN proposals
 __C.TRAIN.RPN_NMS_THRESH = 0.7
 # Number of top scoring boxes to keep before apply NMS to RPN proposals
@@ -207,10 +209,16 @@ __C.TEST.DEBUG_TIMELINE = False
 ###### CCNet Config #######
 #Enable OHEM
 __C.TRAIN.RPN_OHEM = True
-__C.TRAIN.FACTOR = 1
+
+#Train Setting
+__C.TRAIN.boxChain = False
+__C.TRAIN.FACTOR = 0
 __C.TRAIN.REJECT = 0.3
-__C.TEST.FACTOR = 1
-__C.TEST.REJECT = 0
+
+#Test Setting
+__C.TEST.FACTOR = 0
+__C.TEST.REJECT = 0.3
+__C.TEST.boxChain = False
 __C.TRAIN.LOSS = 'Focal Loss'
 ############################
 
