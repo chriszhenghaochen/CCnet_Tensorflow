@@ -1,8 +1,9 @@
 TF_INC=$(python -c 'import tensorflow as tf; print(tf.sysconfig.get_include())')
-TF_LIB=$(python -c 'import tensorflow as tf; print(tf.sysconfig.get_lib())')
+# TF_LIB=$(python -c 'import tensorflow as tf; print(tf.sysconfig.get_lib())')
 
 CUDA_PATH=/usr/local/cuda/
-CXXFLAGS="-L$TF_LIB -ltensorflow_framework"
+# CXXFLAGS="-L$TF_LIB -ltensorflow_framework"
+CXXFLAGS=''
 
 if [[ "$OSTYPE" =~ ^darwin ]]; then
 	CXXFLAGS+='-undefined dynamic_lookup'
@@ -11,7 +12,7 @@ fi
 cd roi_pooling_layer
 
 if [ -d "$CUDA_PATH" ]; then
-	nvcc -std=c++11 -c -o roi_pooling_op.cu.o roi_pooling_op_gpu.cu.cc \
+	/usr/local/cuda-8.0/bin/nvcc -std=c++11 -c -o roi_pooling_op.cu.o roi_pooling_op_gpu.cu.cc \
 		-I $TF_INC -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC $CXXFLAGS \
 		-arch=sm_37
 
