@@ -59,6 +59,6 @@ class SigmoidFocalClassificationLoss():
                                 per_entry_cross_ent)
     if self._anchorwise_output:
     #   return tf.reduce_sum(focal_cross_entropy_loss * weights, 2)
-    # return tf.reduce_sum(focal_cross_entropy_loss * weights)
+    # return tf.reduce_sum(focal_cross_entropy_loss * weights)    
       return tf.reduce_mean(focal_cross_entropy_loss * weights, 2)
     return tf.reduce_mean(focal_cross_entropy_loss * weights)

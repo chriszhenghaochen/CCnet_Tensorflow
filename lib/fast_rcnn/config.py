@@ -210,15 +210,13 @@ __C.TEST.DEBUG_TIMELINE = False
 #Enable OHEM
 __C.TRAIN.RPN_OHEM = True
 
-#Train Setting
-__C.TRAIN.boxChain = True
+__C.TRAIN.boxChain = False
 __C.TRAIN.FACTOR = 0
 __C.TRAIN.REJECT = 0.3
 
-#Test Setting
 __C.TEST.FACTOR = 0
 __C.TEST.REJECT = 0
-__C.TEST.boxChain = True
+__C.TEST.boxChain = False
 __C.TRAIN.LOSS = 'Focal Loss'
 ############################
 
