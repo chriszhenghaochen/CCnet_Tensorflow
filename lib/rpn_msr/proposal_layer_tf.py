@@ -20,6 +20,7 @@ DEBUG = False
 
 #reject factor
 reject_factor = cfg.TEST.REJECT
+boxTrain = True
 
 # #chain factor
 # factor = 1
