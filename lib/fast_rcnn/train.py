@@ -283,17 +283,17 @@ class SolverWrapper(object):
         rpn_label = tf.reshape(tf.gather(rpn_label,tf.where(tf.not_equal(rpn_label,-2))),[-1])
         #chris: rejct done
 
-        # #chris: regular loss
-        # rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
-        # #chris: done
+        #chris: regular loss
+        rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
+        #chris: done
 
-        #chris: second Focal Loss
-        length = tf.size(rpn_label)
-        rpn_label = tf.one_hot(indices = rpn_label, depth=2, on_value=1, off_value=0, axis=-1)
-        rpn_label = tf.cast(rpn_label, tf.float32)
-        rpn_weights = tf.ones([1, length], tf.float32)
-        rpn_cross_entropy = self.fl.compute_loss(prediction_tensor = rpn_cls_score, target_tensor = rpn_label, weights = rpn_weights)
-        #chris: Done
+        # #chris: second Focal Loss
+        # length = tf.size(rpn_label)
+        # rpn_label = tf.one_hot(indices = rpn_label, depth=2, on_value=1, off_value=0, axis=-1)
+        # rpn_label = tf.cast(rpn_label, tf.float32)
+        # rpn_weights = tf.ones([1, length], tf.float32)
+        # rpn_cross_entropy = self.fl.compute_loss(prediction_tensor = rpn_cls_score, target_tensor = rpn_label, weights = rpn_weights)
+        # #chris: Done
 
 
         # bounding box regression L1 loss

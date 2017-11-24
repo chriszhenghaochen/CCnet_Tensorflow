@@ -178,24 +178,6 @@ def im_detect(sess, net, im, boxes=None):
                                                     options=run_options,
                                                     run_metadata=run_metadata)
 
-    #chris DEBUG#
-    a,b = sess.run([net.get_output('rpn_cls_prob'), net.get_output('rpn_cls_prob_reshape')],
-                                                    feed_dict=feed_dict,
-                                                    options=run_options,
-                                                    run_metadata=run_metadata)
-
-
-    # print 'RPN Score'
-    # print a 
-    # print a.shape
-    # print 'RPN Score After reshape'
-    # print b
-    # print b.shape
-
-
-    #chris#
-
-
     if cfg.TEST.HAS_RPN:
         assert len(im_scales) == 1, "Only single-image batch implemented"
         boxes = rois[:, 1:5] / im_scales[0]
@@ -361,4 +343,3 @@ def test_net(sess, net, imdb, weights_filename , max_per_image=300, thresh=0.05,
 
     print 'Evaluating detections'
     imdb.evaluate_detections(all_boxes, output_dir)
-

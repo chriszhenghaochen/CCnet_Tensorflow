@@ -20,7 +20,7 @@ DEBUG = False
 
 #reject factor
 reject_factor = cfg.TEST.REJECT
-boxTrain = True
+# boxTrain = True
 
 # #chain factor
 # factor = 1
@@ -136,7 +136,6 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,pre_rpn_cls_prob_r
 
     ##----------------------------------chris: regression add up-----------------------------------##
     if pre_bbox_pred.size != 0 and ((cfg_key == 'TRAIN' and cfg.TRAIN.boxChain == True) or (cfg_key == 'TEST' and cfg.TEST.boxChain == True)):
-
 
         #chris: preprocess box_pred
         pre_bbox_pred = np.transpose(pre_bbox_pred,[0,3,1,2])

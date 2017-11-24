@@ -219,7 +219,10 @@ __C.TRAIN.REJECT = 0.3
 __C.TEST.FACTOR = 0
 __C.TEST.REJECT = 0
 __C.TEST.boxChain = True
-__C.TRAIN.LOSS = 'Focal Loss'
+
+# Train Loss
+__C.TRAIN.LOSS1 = 'Focal Loss'
+__C.TRAIN.LOSS2 = 'Focal Loss'
 ############################
 
 #
