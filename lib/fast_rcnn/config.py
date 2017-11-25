@@ -212,17 +212,17 @@ __C.TRAIN.RPN_OHEM = True
 
 #Train Setting
 __C.TRAIN.boxChain = True
-__C.TRAIN.FACTOR = 0
+__C.TRAIN.FACTOR = 1
 __C.TRAIN.REJECT = 0.3
 
 #Test Setting
-__C.TEST.FACTOR = 0
+__C.TEST.FACTOR = 1
 __C.TEST.REJECT = 0
 __C.TEST.boxChain = True
 
-# Train Loss
+#Train Loss
 __C.TRAIN.LOSS1 = 'Focal Loss'
-__C.TRAIN.LOSS2 = 'Focal Loss'
+__C.TRAIN.LOSS2 = 'no Focal Loss'
 ############################
 
 #

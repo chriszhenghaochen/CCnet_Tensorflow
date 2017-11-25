@@ -155,7 +155,7 @@ class VGGnet_train(Network):
         #chris
 
         #chris: original proposal
-        # (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape','rpn-data')
+        # (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info','rpn1_cls_prob_reshape')
         #      .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn_rois'))
         #chris
 
