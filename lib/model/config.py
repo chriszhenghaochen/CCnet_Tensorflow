@@ -276,7 +276,7 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 __C.TRAIN.REJECT = 0.2
 
 #test
-__C.TEST.REJECT = 1
+__C.TEST.REJECT = 0
 
 #score factor
 __C.SCORE_FACTOR = 1

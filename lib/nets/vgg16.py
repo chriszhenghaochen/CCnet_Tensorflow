@@ -172,7 +172,11 @@ class vgg16(Network):
                                        weights_initializer=initializer_bbox,
                                        trainable=is_training,
                                        activation_fn=None, scope='bbox_pred')
-        
+      
+
+      #debug
+      tmp = net['conv2/conv2_2']
+      self._predictions['tmp'] = tmp
 
       #store rpn1 values
       self._predictions["rpn1_cls_score"] = rpn1_cls_score

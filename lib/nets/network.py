@@ -65,6 +65,15 @@ class Network(object):
                               - (1 - alpha) * (neg_p_sub ** gamma) * tf.log(tf.clip_by_value(1.0 - sigmoid_p, 1e-8, 1.0))
       return tf.reduce_mean(per_entry_cross_ent)  
 
+  #resize feature map
+  def _resize_map(self, input_map, size_map, name):
+    up_h = tf.shape(size_map)[1]
+    up_w = tf.shape(size_map)[2]
+
+    return tf.image.resize_bilinear(input_map, [up_h, up_w], name=name)
+
+
+
   def _add_image_summary(self, image, boxes):
     # add back mean
     image += cfg.PIXEL_MEANS
