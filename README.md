@@ -13,6 +13,8 @@ https://arxiv.org/abs/1702.07054
 # Result
 Enhance baseline (train: VOC_2007, test: VOC_2007, VGG16) from ***69.7%*** to ***71.6%*** (In paper is 72.4%)
 
+Enhance baseline (train: VOC_2007, VOC_2012 test: VOC_2007, VGG16) from ***75.3%*** to ***76.1%*** (In paper is 80.4%)
+
 # Fine-Tuning
 In Config file
 
