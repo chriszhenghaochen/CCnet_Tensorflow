@@ -19,7 +19,8 @@ cfg = __C
 __C.TRAIN = edict()
 
 # Initial learning rate
-__C.TRAIN.LEARNING_RATE = 0.001
+#__C.TRAIN.LEARNING_RATE = 0.001
+__C.TRAIN.LEARNING_RATE = 0.0001
 
 # Momentum
 __C.TRAIN.MOMENTUM = 0.9
@@ -273,7 +274,9 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 
 #----------CCNet Config--------#
 #train
-__C.TRAIN.REJECT = 0.2
+__C.TRAIN.REJECT4_3 = 0.1
+__C.TRAIN.REJECT5_2 = 0.2
+__C.TRAIN.REJECT5_3 = 0.1
 
 #test
 __C.TEST.REJECT = 0
@@ -285,12 +288,16 @@ __C.SCORE_FACTOR = 1
 __C.BOX_CHAIN = True
 
 #ohem 3: 1 restrinct
-__C.TRAIN.OHEM1 = False
-__C.TRAIN.OHEM2 = True
+__C.TRAIN.OHEM4_2 = False
+__C.TRAIN.OHEM4_3 = False
+__C.TRAIN.OHEM5_2 = False
+__C.TRAIN.OHEM5_3 = True
 
 #focal loss
-__C.TRAIN.FOCAL_LOSS1 = False
-__C.TRAIN.FOCAL_LOSS2 = False
+__C.TRAIN.FOCAL_LOSS4_2 = False
+__C.TRAIN.FOCAL_LOSS4_3 = False
+__C.TRAIN.FOCAL_LOSS5_2 = False
+__C.TRAIN.FOCAL_LOSS5_3 = False
 #--------------done------------#
 
 
