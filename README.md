@@ -59,4 +59,8 @@ If you want previous version (mAP,70.5%), please contact zhenghao.chen@sydney.ed
 # Experiment Log
 If you wanna know my current experiment log, please contact zhenghao.chen@sydney.edu.au directly.
 
+# Original Work
+Look at this repo:
+https://github.com/wk910930/ccnn
+
 
