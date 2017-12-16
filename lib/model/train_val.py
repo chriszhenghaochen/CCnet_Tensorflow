@@ -105,6 +105,7 @@ class SolverWrapper(object):
                                             anchor_ratios=cfg.ANCHOR_RATIOS)
       # Define the loss
       loss = layers['total_loss']
+
       # Set learning rate and momentum
       lr = tf.Variable(cfg.TRAIN.LEARNING_RATE, trainable=False)
       momentum = cfg.TRAIN.MOMENTUM
@@ -112,15 +113,24 @@ class SolverWrapper(object):
 
       # Compute the gradients wrt the loss
       gvs = self.optimizer.compute_gradients(loss)
+
+      #print(gvs)
+
       # Double the gradient of the bias if set
       if cfg.TRAIN.DOUBLE_BIAS:
         final_gvs = []
         with tf.variable_scope('Gradient_Mult') as scope:
           for grad, var in gvs:
+            # print('var ', var)
+
             scale = 1.
             if cfg.TRAIN.DOUBLE_BIAS and '/biases:' in var.name:
               scale *= 2.
             if not np.allclose(scale, 1.0):
+
+              #print('grad ', grad)
+              #print('scale ', scale)
+
               grad = tf.multiply(grad, scale)
             final_gvs.append((grad, var))
         train_op = self.optimizer.apply_gradients(final_gvs)
@@ -220,36 +230,40 @@ class SolverWrapper(object):
 
       now = time.time()
 
-      # #DEBUG
-      # rpn1, rpn2, rpn3 = self.net.DEBUG(sess, blobs)
-      # print('rpn 1', rpn1)
-      # print('rpn 2', rpn2)
-      # print('rpn 3', rpn3)
+      # # # # DEBUG
+      # # #rpn4_2s, rpn4_2b, cp4_2, rpn4_3s, rpn4_3b, cp4_3, rpn5s, rpn5b, cp5, rpns, rpnb, cp, cp1 = self.net.DEBUG(sess, blobs)
+      # b1,b2,b3 = self.net.DEBUG(sess, blobs)
 
-      if now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
 
-        # Compute the graph with summary
-        # rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
-        #   self.net.train_step_with_summary(sess, blobs, train_op)
+      # ###############----------there is a bug here: to do-------------#############
+      # if now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
 
-        #new train step
-        rpn1_loss_cls, rpn1_loss_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
-            self.net.train_step_with_summary(sess, blobs, train_op)
-        #done
+      #   # Compute the graph with summary
+      #   # rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
+      #   #   self.net.train_step_with_summary(sess, blobs, train_op)
 
-        self.writer.add_summary(summary, float(iter))
-        # Also check the summary on the validation set
-        blobs_val = self.data_layer_val.forward()
-        summary_val = self.net.get_summary(sess, blobs_val)
-        self.valwriter.add_summary(summary_val, float(iter))
-        last_summary_time = now
-      else:
+      #   #new train step
+      #   rpn4_2_loss_cls, rpn4_3_loss_cls, rpn5_loss_cls, rpn5_loss_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
+      #       self.net.train_step_with_summary(sess, blobs, train_op)
+      #   #done
+
+      #   self.writer.add_summary(summary, float(iter))
+      #   # Also check the summary on the validation set
+      #   blobs_val = self.data_layer_val.forward()
+      #   summary_val = self.net.get_summary(sess, blobs_val)
+      #   self.valwriter.add_summary(summary_val, float(iter))
+      #   last_summary_time = now
+      # else:
+      # #################-------------------------------###############################
+
+
+      if True:
         # Compute the graph without summary
         # rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
         #   self.net.train_step(sess, blobs, train_op)
 
         #new train step
-        rpn1_loss_cls, rpn1_loss_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
+        rpn4_2_loss_cls, rpn4_3_loss_cls, rpn5_loss_cls, rpn5_loss_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
           self.net.train_step(sess, blobs, train_op)
 
       timer.toc()
@@ -261,9 +275,9 @@ class SolverWrapper(object):
         #       (iter, max_iters, total_loss, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
 
         #new showing up
-        print('iter: %d / %d, total loss: %.6f\n >>> rpn1_loss_cls: %.6f\n >>> rpn1_loss_box: %.6f\n >>> rpn_loss_cls: %.6f\n '
+        print('iter: %d / %d, total loss: %.6f\n >>> rpn4_2_loss_cls: %.6f\n >>> rpn4_3_loss_cls: %.6f\n >>> rpn5_loss_cls: %.6f\n >>> rpn5_loss_box: %.6f\n >>> rpn_loss_cls: %.6f\n '
               '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
-              (iter, max_iters, total_loss, rpn1_loss_cls, rpn1_loss_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
+              (iter, max_iters, total_loss, rpn4_2_loss_cls, rpn4_3_loss_cls, rpn5_loss_cls, rpn5_loss_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
         #new showing up
 
         print('speed: {:.3f}s / iter'.format(timer.average_time))
