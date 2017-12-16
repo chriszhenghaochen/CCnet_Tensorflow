@@ -21,12 +21,10 @@ In Config file
 ```
 #----------CCNet Config--------#
 #train
-__C.TRAIN.REJECT4_3 = 0.1
-__C.TRAIN.REJECT5_2 = 0.2
-__C.TRAIN.REJECT5_3 = 0.1
+__C.TRAIN.REJECT = 0.2
 
 #test
-__C.TEST.REJECT = 0
+__C.TEST.REJECT = 1
 
 #score factor
 __C.SCORE_FACTOR = 1
@@ -35,16 +33,12 @@ __C.SCORE_FACTOR = 1
 __C.BOX_CHAIN = True
 
 #ohem 3: 1 restrinct
-__C.TRAIN.OHEM4_2 = False
-__C.TRAIN.OHEM4_3 = False
-__C.TRAIN.OHEM5_2 = False
-__C.TRAIN.OHEM5_3 = True
+__C.TRAIN.OHEM1 = False
+__C.TRAIN.OHEM2 = True
 
 #focal loss
-__C.TRAIN.FOCAL_LOSS4_2 = False
-__C.TRAIN.FOCAL_LOSS4_3 = False
-__C.TRAIN.FOCAL_LOSS5_2 = False
-__C.TRAIN.FOCAL_LOSS5_3 = False
+__C.TRAIN.FOCAL_LOSS1 = False
+__C.TRAIN.FOCAL_LOSS2 = False
 #--------------done------------#
 ```
 # Previous Version
