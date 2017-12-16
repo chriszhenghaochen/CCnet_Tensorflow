@@ -1,6 +1,9 @@
 # CCnet
 Replace lib folder in the [***tf-fast-rcnn***](https://github.com/endernewton/tf-faster-rcnn) and follow in instruction to run
 
+***Note*** There are some bugs leading error training please use https://github.com/chriszhenghaochen/CCnet_Tensorflow/tree/67ee16c109da41e3cc7533762ac084a2890f0722
+this commit for training and eval
+
 # Tensorflow
 now support Tensorflow 1.4.0
 
