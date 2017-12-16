@@ -16,18 +16,14 @@ from utils.cython_bbox import bbox_overlaps
 from model.bbox_transform import bbox_transform
 from model.bbox_transform import bbox_transform_inv, clip_boxes
 
+reject_factor = cfg.TRAIN.REJECT
 boxChain = cfg.BOX_CHAIN
 
-def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anchors, num_anchors, pre_rpn_cls_prob, pre_bbox_pred, OHEM, reject, rej_inds):
+def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anchors, num_anchors, pre_rpn_cls_prob, pre_bbox_pred, OHEM):
   """Same as the anchor target layer in original Fast/er RCNN """
 
   # DEBUG:
   # print('SCORE ',rpn_cls_score[0][0][0][0])
-  # print(all_anchors[0])
-
-  #print('In this')
-  # if pre_rpn_cls_prob.size != 0:
-  #   print pre_rpn_cls_prob.size
 
   A = num_anchors
   total_anchors = all_anchors.shape[0]
@@ -105,10 +101,9 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
 
   
   ###------------------------reject process---------------------------###
-  if reject!= -1 and pre_rpn_cls_prob.size != 0:
+  if pre_rpn_cls_prob.size != 0:
 
     # print(pre_rpn_cls_prob)
-    reject_factor = reject
 
     pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob,[0,3,1,2])
     pre_scores = pre_rpn_cls_prob_reshape[:,:A, :, :]
@@ -182,7 +177,6 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
 
   #get reject inds after umap   
   final_pass_inds = np.where(labels != -2)[0]
-  final_rej_inds = np.where(labels == -2)[0]
 
   # labels
   labels = labels.reshape((1, height, width, A)).transpose(0, 3, 1, 2)
@@ -205,7 +199,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
     .reshape((1, height, width, A * 4))
 
   rpn_bbox_outside_weights = bbox_outside_weights
-  return rpn_labels, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights, final_pass_inds, final_rej_inds
+  return rpn_labels, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights, final_pass_inds
 
 
 def _unmap(data, count, inds, fill=0):

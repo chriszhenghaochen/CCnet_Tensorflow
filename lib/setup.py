@@ -37,7 +37,7 @@ def locate_cuda():
         nvcc = pjoin(home, 'bin', 'nvcc')
     else:
         # otherwise, search the PATH for NVCC
-        default_path = pjoin(os.sep, 'usr', 'local', 'cuda-7.5', 'bin')
+        default_path = pjoin(os.sep, 'usr', 'local', 'cuda', 'bin')
         nvcc = find_in_path('nvcc', os.environ['PATH'] + os.pathsep + default_path)
         if nvcc is None:
             raise EnvironmentError('The nvcc binary could not be '
