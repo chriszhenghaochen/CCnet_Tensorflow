@@ -1,6 +1,11 @@
 # CCnet
 Replace lib folder in the [***tf-fast-rcnn***](https://github.com/endernewton/tf-faster-rcnn) and follow in instruction to run
 
+***Note*** There are some bugs in current version leading error training please use https://github.com/chriszhenghaochen/CCnet_Tensorflow/tree/67ee16c109da41e3cc7533762ac084a2890f0722
+this commit for training and eval
+
+I will try to fix that problem as soon as possible, or any other ideas will be appreciated
+
 # Tensorflow
 now support Tensorflow 1.4.0
 
@@ -21,12 +26,10 @@ In Config file
 ```
 #----------CCNet Config--------#
 #train
-__C.TRAIN.REJECT4_3 = 0.1
-__C.TRAIN.REJECT5_2 = 0.2
-__C.TRAIN.REJECT5_3 = 0.1
+__C.TRAIN.REJECT = 0.2
 
 #test
-__C.TEST.REJECT = 0
+__C.TEST.REJECT = 1
 
 #score factor
 __C.SCORE_FACTOR = 1
@@ -35,16 +38,12 @@ __C.SCORE_FACTOR = 1
 __C.BOX_CHAIN = True
 
 #ohem 3: 1 restrinct
-__C.TRAIN.OHEM4_2 = False
-__C.TRAIN.OHEM4_3 = False
-__C.TRAIN.OHEM5_2 = False
-__C.TRAIN.OHEM5_3 = True
+__C.TRAIN.OHEM1 = False
+__C.TRAIN.OHEM2 = True
 
 #focal loss
-__C.TRAIN.FOCAL_LOSS4_2 = False
-__C.TRAIN.FOCAL_LOSS4_3 = False
-__C.TRAIN.FOCAL_LOSS5_2 = False
-__C.TRAIN.FOCAL_LOSS5_3 = False
+__C.TRAIN.FOCAL_LOSS1 = False
+__C.TRAIN.FOCAL_LOSS2 = False
 #--------------done------------#
 ```
 # Previous Version
