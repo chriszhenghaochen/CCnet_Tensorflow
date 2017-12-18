@@ -19,6 +19,12 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
   """A simplified version compared to fast/er RCNN
      For details please see the technical report
   """
+
+  # #debug
+  # print('prob = ', rpn_cls_prob)
+  # print('pass inds', pass_inds)
+
+
   if type(cfg_key) == bytes:
       cfg_key = cfg_key.decode('utf-8')
   pre_nms_topN = cfg[cfg_key].RPN_PRE_NMS_TOP_N
@@ -123,5 +129,7 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
   # Only support single image as input
   batch_inds = np.zeros((proposals.shape[0], 1), dtype=np.float32)
   blob = np.hstack((batch_inds, proposals.astype(np.float32, copy=False)))
+
+  #print('scores ', scores)
 
   return blob, scores

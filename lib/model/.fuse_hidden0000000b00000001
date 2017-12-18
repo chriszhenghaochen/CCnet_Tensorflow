@@ -140,8 +140,8 @@ class SolverWrapper(object):
       # We will handle the snapshots ourselves
       self.saver = tf.train.Saver(max_to_keep=100000)
       # Write the train and validation information to tensorboard
-      # self.writer = tf.summary.FileWriter(self.tbdir, sess.graph)
-      # self.valwriter = tf.summary.FileWriter(self.tbvaldir)
+      self.writer = tf.summary.FileWriter(self.tbdir, sess.graph)
+      self.valwriter = tf.summary.FileWriter(self.tbvaldir)
 
     # Find previous snapshots if there is any to restore from
     sfiles = os.path.join(self.output_dir, cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_*.ckpt.meta')
@@ -230,15 +230,24 @@ class SolverWrapper(object):
 
       now = time.time()
 
-      # # # DEBUG
-      # #rpn4_2s, rpn4_2b, cp4_2, rpn4_3s, rpn4_3b, cp4_3, rpn5s, rpn5b, cp5, rpns, rpnb, cp, cp1 = self.net.DEBUG(sess, blobs)
-      #rpn4_2_loss_cls, rpn4_3_loss_cls, rpn5_loss_cls, rpn5_loss_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = self.net.DEBUG(sess, blobs)
+      # DEBUG
+      rpn4_2s, rpn4_2b, cp4_2, rpn4_3s, rpn4_3b, cp4_3, rpn5s, rpn5b, cp5, rpns, rpnb, cp = self.net.DEBUG(sess, blobs)
 
-      # print('total loss: %.6f\n >>> rpn4_2_loss_cls: %.6f\n >>> rpn4_3_loss_cls: %.6f\n >>> rpn5_loss_cls: %.6f\n >>> rpn5_loss_box: %.6f\n >>> rpn_loss_cls: %.6f\n '
-      #         '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
-      #         (total_loss, rpn4_2_loss_cls, rpn4_3_loss_cls, rpn5_loss_cls, rpn5_loss_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
-      
-      ###############----------there is a bug here: to do-------------#############
+      print('rpn 4_2 score', rpn4_2s.shape)
+      print('rpn 4_2 label', rpn4_2b.shape)
+      # print('entropy 4_2 ', cp4_2)
+      # print('rpn 4_3 score', rpn4_3s)
+      # print('rpn 4_3 label', rpn4_2b)
+      # print('entropy 4_3 ', cp4_3)
+      print('rpn 5 score', rpn5s.shape)
+      print('rpn 5 label', rpn5b.shape)
+      print('entropy 5 ', cp5)
+      # print('rpn 6 score', rpns)
+      # print('rpn 6 label', rpnb)
+      # print('entropy 6 ', cp)
+      # print('rpn 5 score', rpn5s.shape)
+      # print('rpn 5 box', rpn5b.shape)
+
       if now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
 
         # Compute the graph with summary
@@ -257,7 +266,6 @@ class SolverWrapper(object):
         self.valwriter.add_summary(summary_val, float(iter))
         last_summary_time = now
       else:
-      #################-------------------------------###############################
         # Compute the graph without summary
         # rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
         #   self.net.train_step(sess, blobs, train_op)

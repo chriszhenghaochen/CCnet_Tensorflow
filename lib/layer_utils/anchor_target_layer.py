@@ -16,14 +16,18 @@ from utils.cython_bbox import bbox_overlaps
 from model.bbox_transform import bbox_transform
 from model.bbox_transform import bbox_transform_inv, clip_boxes
 
-reject_factor = cfg.TRAIN.REJECT
 boxChain = cfg.BOX_CHAIN
 
-def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anchors, num_anchors, pre_rpn_cls_prob, pre_bbox_pred, OHEM):
+def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anchors, num_anchors, pre_rpn_cls_prob, pre_bbox_pred, OHEM, reject, rej_inds, name):
   """Same as the anchor target layer in original Fast/er RCNN """
 
   # DEBUG:
   # print('SCORE ',rpn_cls_score[0][0][0][0])
+  # print(all_anchors[0])
+
+  #print('In this')
+  # if pre_rpn_cls_prob.size != 0:
+  #   print pre_rpn_cls_prob.size
 
   A = num_anchors
   total_anchors = all_anchors.shape[0]
@@ -103,26 +107,50 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
   ###------------------------reject process---------------------------###
   if pre_rpn_cls_prob.size != 0:
 
-    # print(pre_rpn_cls_prob)
+    if name == "anchor5":
 
-    pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob,[0,3,1,2])
-    pre_scores = pre_rpn_cls_prob_reshape[:,:A, :, :]
-    pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
-    
-    #print(pre_scores)
+      # print(pre_rpn_cls_prob)
+
+      for i in [0,1]:
+        reject_factor = reject[i]
+
+        pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob[i],[0,3,1,2])
+        pre_scores = pre_rpn_cls_prob_reshape[:,:A, :, :]
+        pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
+
+        pre_scores = pre_scores[inds_inside]
+            
+        reject_number = int(len(inds_inside)*reject_factor)
+
+        pre_scores = pre_scores.ravel()
+        rejinds = pre_scores.argsort()[::-1][:reject_number]
+
+        labels[rejinds] = -2
+
+        #print(i , ' ', name , ' reject : ', len(np.where(labels == -2)[0]), ' anchors' )
+        #print(i , ' ', name , ' reject : ', rejinds, ' anchors' )
+
+    else:
+
+      # print(pre_rpn_cls_prob)
+      reject_factor = reject
+
+      pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob,[0,3,1,2])
+      pre_scores = pre_rpn_cls_prob_reshape[:,:A, :, :]
+      pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
+      
+      #print(pre_scores)
 
 
-    pre_scores = pre_scores[inds_inside]
-        
-    reject_number = int(len(inds_inside)*reject_factor)
+      pre_scores = pre_scores[inds_inside]
+          
+      reject_number = int(len(inds_inside)*reject_factor)
 
-    pre_scores = pre_scores.ravel()
-    rejinds = pre_scores.argsort()[::-1][:reject_number]
+      pre_scores = pre_scores.ravel()
+      rejinds = pre_scores.argsort()[::-1][:reject_number]
 
-    
-    labels[rejinds] = -2
+      labels[rejinds] = -2
 
-    #print('reject : ', len(np.where(labels == -2)[0]), ' anchors' )
   
   ###-------------------------reject done-----------------------------###
 
@@ -175,8 +203,29 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
   bbox_inside_weights = _unmap(bbox_inside_weights, total_anchors, inds_inside, fill=0)
   bbox_outside_weights = _unmap(bbox_outside_weights, total_anchors, inds_inside, fill=0)
 
+
+  #combine reject index
+  if rej_inds.size != 0:
+    # print(name, ' prerej ', rej_inds)
+    # print(name, ' rej', rejinds)
+
+    # rejinds = np.concatenate((rej_inds, rejinds), axis=0)
+    # rejinds = np.unique(rejinds)
+
+    labels[rej_inds] = -2
+
   #get reject inds after umap   
   final_pass_inds = np.where(labels != -2)[0]
+  final_rej_inds = np.where(labels == -2)[0]
+
+  #print(name, 'final_pass_inds', final_pass_inds)
+  #print(name, 'final_rej_inds', final_rej_inds)
+
+  # #debug
+  # print(name , ' reject : ', len(np.where(labels == -2)[0]), ' anchors' )
+  # print(name , ' positive : ', len(np.where(labels == 1)[0]), ' anchors' )
+  # print(name , ' negative : ', len(np.where(labels == 0)[0]), ' anchors' )
+  #print(name , ' ignores : ', len(np.where(labels == -1)[0]), ' anchors' )
 
   # labels
   labels = labels.reshape((1, height, width, A)).transpose(0, 3, 1, 2)
@@ -199,7 +248,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
     .reshape((1, height, width, A * 4))
 
   rpn_bbox_outside_weights = bbox_outside_weights
-  return rpn_labels, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights, final_pass_inds
+  return rpn_labels, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights, final_pass_inds, final_rej_inds
 
 
 def _unmap(data, count, inds, fill=0):
