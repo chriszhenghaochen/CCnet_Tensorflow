@@ -140,7 +140,7 @@ class Network(object):
     with tf.variable_scope(name) as scope:
       rois, rpn_scores = tf.py_func(proposal_top_layer,
                                     [rpn_cls_prob, rpn_bbox_pred, self._im_info,
-                                     self._feat_stride, self._anchors[num], self._num_anchors, pre_rpn_cls_prob, pre_rpn_bbox_pred],
+                                     self._feat_stride[num], self._anchors[num], self._num_anchors, pre_rpn_cls_prob, pre_rpn_bbox_pred],
                                     [tf.float32, tf.float32])
       rois.set_shape([cfg.TEST.RPN_TOP_N, 5])
       rpn_scores.set_shape([cfg.TEST.RPN_TOP_N, 1])
@@ -151,7 +151,7 @@ class Network(object):
     with tf.variable_scope(name) as scope:
       rois, rpn_scores = tf.py_func(proposal_layer,
                                     [rpn_cls_prob, rpn_bbox_pred, self._im_info, self._mode,
-                                     self._feat_stride, self._anchors[num], self._num_anchors, rpn_pass_inds, pre_rpn_cls_prob, pre_rpn_bbox_pred],
+                                     self._feat_stride[num], self._anchors[num], self._num_anchors, rpn_pass_inds, pre_rpn_cls_prob, pre_rpn_bbox_pred],
                                     [tf.float32, tf.float32])
       rois.set_shape([None, 5])
       rpn_scores.set_shape([None, 1])
@@ -166,13 +166,13 @@ class Network(object):
                                   pooled_width=cfg.POOLING_SIZE,
                                   spatial_scale=1. / 16.)[0]
 
-  def _crop_pool_layer(self, bottom, rois, name):
+  def _crop_pool_layer(self, num, bottom, rois, name):
     with tf.variable_scope(name) as scope:
       batch_ids = tf.squeeze(tf.slice(rois, [0, 0], [-1, 1], name="batch_id"), [1])
       # Get the normalized coordinates of bboxes
       bottom_shape = tf.shape(bottom)
-      height = (tf.to_float(bottom_shape[1]) - 1.) * np.float32(self._feat_stride[0])
-      width = (tf.to_float(bottom_shape[2]) - 1.) * np.float32(self._feat_stride[0])
+      height = (tf.to_float(bottom_shape[1]) - 1.) * np.float32(self._feat_stride[num])
+      width = (tf.to_float(bottom_shape[2]) - 1.) * np.float32(self._feat_stride[num])
       x1 = tf.slice(rois, [0, 1], [-1, 1], name="x1") / width
       y1 = tf.slice(rois, [0, 2], [-1, 1], name="y1") / height
       x2 = tf.slice(rois, [0, 3], [-1, 1], name="x2") / width
@@ -187,11 +187,11 @@ class Network(object):
   def _dropout_layer(self, bottom, name, ratio=0.5):
     return tf.nn.dropout(bottom, ratio, name=name)
 
-  def _anchor_target_layer(self, num, rpn_cls_score, name, pre_rpn_cls_prob, pre_rpn_bbox_pred, OHEM, reject, rej_inds):
+  def _anchor_target_layer(self, num, rpn_cls_score, name, pre_rpn_cls_prob, pre_rpn_bbox_pred, OHEM, reject, rej_inds, batch):
     with tf.variable_scope(name) as scope:
       rpn_labels, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights, rpn_pass_inds, rpn_rej_inds = tf.py_func(
         anchor_target_layer,
-        [rpn_cls_score, self._gt_boxes, self._im_info, self._feat_stride, self._anchors[num], self._num_anchors, pre_rpn_cls_prob, pre_rpn_bbox_pred, OHEM, reject, rej_inds, name],
+        [rpn_cls_score, self._gt_boxes, self._im_info, self._feat_stride[num], self._anchors[num], self._num_anchors, pre_rpn_cls_prob, pre_rpn_bbox_pred, OHEM, reject, rej_inds, name, batch],
         [tf.float32, tf.float32, tf.float32, tf.float32, tf.int64, tf.int64])
 
       rpn_labels.set_shape([1, 1, None, None])
@@ -519,7 +519,7 @@ class Network(object):
       # loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
 
       #new loss with rpn5
-      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + rpn5_cross_entropy + rpn5_loss_box + rpn4_3_cross_entropy + rpn4_2_cross_entropy 
+      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + rpn5_cross_entropy + rpn5_loss_box + rpn4_3_cross_entropy*0.5 + rpn4_2_cross_entropy*0.5
 
       self._losses['total_loss'] = loss
 

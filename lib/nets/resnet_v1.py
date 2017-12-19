@@ -56,13 +56,13 @@ class resnetv1(Network):
     self._num_layers = num_layers
     self._resnet_scope = 'resnet_v1_%d' % num_layers
 
-  def _crop_pool_layer(self, bottom, rois, name):
+  def _crop_pool_layer(self, num, bottom, rois, name):
     with tf.variable_scope(name) as scope:
       batch_ids = tf.squeeze(tf.slice(rois, [0, 0], [-1, 1], name="batch_id"), [1])
       # Get the normalized coordinates of bboxes
       bottom_shape = tf.shape(bottom)
-      height = (tf.to_float(bottom_shape[1]) - 1.) * np.float32(self._feat_stride[0])
-      width = (tf.to_float(bottom_shape[2]) - 1.) * np.float32(self._feat_stride[0])
+      height = (tf.to_float(bottom_shape[1]) - 1.) * np.float32(self._feat_stride[num])
+      width = (tf.to_float(bottom_shape[2]) - 1.) * np.float32(self._feat_stride[num])
       x1 = tf.slice(rois, [0, 1], [-1, 1], name="x1") / width
       y1 = tf.slice(rois, [0, 2], [-1, 1], name="y1") / height
       x2 = tf.slice(rois, [0, 3], [-1, 1], name="x2") / width
@@ -205,7 +205,7 @@ class resnetv1(Network):
 
       # rcnn
       if cfg.POOLING_MODE == 'crop':
-        pool5 = self._crop_pool_layer(net_conv4, rois, "pool5")
+        pool5 = self._crop_pool_layer(5, net_conv4, rois, "pool5")
       else:
         raise NotImplementedError
 

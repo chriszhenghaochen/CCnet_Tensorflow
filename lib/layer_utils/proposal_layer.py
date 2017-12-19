@@ -73,8 +73,11 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
 
     #print('after reject ', scores.size)
 
+    # print(passinds)
+
   #------------------reject done-----------------#
 
+  # print('after reject',scores.size)
 
   #--------------------------TEST Reject------------------------------#
   if cfg_key == 'TEST' and pre_rpn_cls_prob_reshape.size != 0:
@@ -101,7 +104,7 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
       #in case cuda error occur
       if passinds is None or passinds.size == 0:          
         passinds = np.array([0])
-        print(passinds)
+        #print(passinds)
 
       passinds.sort()
 
@@ -109,6 +112,10 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
       proposals = proposals[passinds, :]
       scores = scores[passinds]
   #-------------------------------done---------------------------------#
+
+
+  #print('proposal ',proposals)
+
 
   # Pick the top region proposals
   order = scores.ravel().argsort()[::-1]

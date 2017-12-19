@@ -28,6 +28,11 @@ reject4_3 = cfg.TRAIN.REJECT4_3
 reject5_2 = cfg.TRAIN.REJECT5_2
 reject5_3 = cfg.TRAIN.REJECT5_3
 
+batch42 = cfg.TRAIN.C42_BATCH
+batch43 = cfg.TRAIN.C43_BATCH
+batch52 = cfg.TRAIN.C52_BATCH
+batch53 = cfg.TRAIN.C53_BATCH
+
 
 class vgg16(Network):
   def __init__(self, batch_size=1):
@@ -117,7 +122,7 @@ class vgg16(Network):
 
       if is_training:
         # rois1, roi1_scores = self._proposal_layer(rpn4_2_cls_prob, rpn4_2_bbox_pred, "rois1")
-        rpn4_2_labels, rpn4_2_pass_inds, rpn4_2_rej_inds = self._anchor_target_layer(4, rpn4_2_cls_score, "anchor4_2", [], [], OHEM4_2, -1, [])
+        rpn4_2_labels, rpn4_2_pass_inds, rpn4_2_rej_inds = self._anchor_target_layer(4, rpn4_2_cls_score, "anchor4_2", [], [], OHEM4_2, -1, [], batch42)
         # # Try to have a determinestic order for the computing graph, for reproducibility
         # with tf.control_dependencies([rpn4_2_labels]):
         #   rois1, _ = self._proposal_target_layer(rois1, roi1_scores, "rpn4_2_rois")
@@ -169,7 +174,7 @@ class vgg16(Network):
 
       if is_training:
         # rois1, roi1_scores = self._proposal_layer(rpn4_3_cls_prob, rpn4_3_bbox_pred, "rois1")
-        rpn4_3_labels, rpn4_3_pass_inds, rpn4_3_rej_inds = self._anchor_target_layer(4, rpn4_cls_score, "anchor4_3", rpn4_2_cls_prob_reshape, [], OHEM4_3, reject4_3,[])
+        rpn4_3_labels, rpn4_3_pass_inds, rpn4_3_rej_inds = self._anchor_target_layer(4, rpn4_cls_score, "anchor4_3", rpn4_2_cls_prob_reshape, [], OHEM4_3, reject4_3,[], batch43)
 
       #   #generate proposal - using add up score
       #   rois4, roi4_scores = self._proposal_layer(4, rpn4_cls_prob, rpn4_3_bbox_pred, "rois4", rpn4_3_pass_inds, [], rpn4_2_bbox_pred)
@@ -235,7 +240,7 @@ class vgg16(Network):
       rpn5_rej_inds = []
       if is_training:
         # rois1, roi1_scores = self._proposal_layer(rpn5_cls_prob, rpn5_bbox_pred, "rois1")
-        rpn5_labels, rpn5_pass_inds, rpn5_rej_inds = self._anchor_target_layer(5, rpn45_cls_score, "anchor5", [rpn4_cls_prob_reshape_resize, rpn4_2_cls_prob_reshape_resize], [], OHEM5_2, [reject5_2, reject4_3], [])
+        rpn5_labels, rpn5_pass_inds, rpn5_rej_inds = self._anchor_target_layer(5, rpn45_cls_score, "anchor5", [rpn4_cls_prob_reshape_resize, rpn4_2_cls_prob_reshape_resize], [], OHEM5_2, [reject5_2, reject4_3], [], batch52)
         # # Try to have a determinestic order for the computing graph, for reproducibility
         # with tf.control_dependencies([rpn5_labels]):
         #   rois1, _ = self._proposal_target_layer(rois1, roi1_scores, "rpn5_rois")
@@ -280,7 +285,7 @@ class vgg16(Network):
 
       if is_training:
         #compute anchor loss       
-        rpn_labels, rpn_pass_inds, rpn_rej_inds = self._anchor_target_layer(5, rpn56_cls_score, "anchor", rpn45_cls_prob_reshape, rpn5_bbox_pred, OHEM5_3, reject5_3, rpn5_rej_inds)
+        rpn_labels, rpn_pass_inds, rpn_rej_inds = self._anchor_target_layer(5, rpn56_cls_score, "anchor", rpn45_cls_prob_reshape, rpn5_bbox_pred, OHEM5_3, reject5_3, rpn5_rej_inds, batch53)
 
         # #compute anchor loss - using add up score       
         #rpn_labels, rpn_pass_inds = self._anchor_target_layer(6, rpn56_cls_score, "anchor", rpn5_cls_prob_reshape, rpn5_bbox_pred, OHEM2)
@@ -313,7 +318,7 @@ class vgg16(Network):
       
       # rcnn
       if cfg.POOLING_MODE == 'crop':
-        pool5 = self._crop_pool_layer(net, rois, "pool5")
+        pool5 = self._crop_pool_layer(5, net, rois, "pool5")
       else:
         raise NotImplementedError
 

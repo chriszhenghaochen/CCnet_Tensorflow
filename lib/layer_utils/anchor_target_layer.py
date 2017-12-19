@@ -18,7 +18,7 @@ from model.bbox_transform import bbox_transform_inv, clip_boxes
 
 boxChain = cfg.BOX_CHAIN
 
-def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anchors, num_anchors, pre_rpn_cls_prob, pre_bbox_pred, OHEM, reject, rej_inds, name):
+def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anchors, num_anchors, pre_rpn_cls_prob, pre_bbox_pred, OHEM, reject, rej_inds, name, batch):
   """Same as the anchor target layer in original Fast/er RCNN """
 
   # DEBUG:
@@ -28,6 +28,8 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
   #print('In this')
   # if pre_rpn_cls_prob.size != 0:
   #   print pre_rpn_cls_prob.size
+
+  #print(all_anchors)
 
   A = num_anchors
   total_anchors = all_anchors.shape[0]
@@ -158,7 +160,8 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
   #OHEM
   if OHEM == True:
     # subsample positive labels if we have too many
-    num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
+    # num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
+    num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * batch)
     fg_inds = np.where(labels == 1)[0]
     if len(fg_inds) > num_fg:
       disable_inds = npr.choice(
@@ -166,7 +169,8 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
       labels[disable_inds] = -1
 
     # subsample negative labels if we have too many
-    num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
+    # num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
+    num_bg = batch - np.sum(labels == 1)
     bg_inds = np.where(labels == 0)[0]
     if len(bg_inds) > num_bg:
       disable_inds = npr.choice(
@@ -225,7 +229,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
   # print(name , ' reject : ', len(np.where(labels == -2)[0]), ' anchors' )
   # print(name , ' positive : ', len(np.where(labels == 1)[0]), ' anchors' )
   # print(name , ' negative : ', len(np.where(labels == 0)[0]), ' anchors' )
-  #print(name , ' ignores : ', len(np.where(labels == -1)[0]), ' anchors' )
+  # print(name , ' ignores : ', len(np.where(labels == -1)[0]), ' anchors' )
 
   # labels
   labels = labels.reshape((1, height, width, A)).transpose(0, 3, 1, 2)

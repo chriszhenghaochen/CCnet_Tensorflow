@@ -19,8 +19,8 @@ cfg = __C
 __C.TRAIN = edict()
 
 # Initial learning rate
-#__C.TRAIN.LEARNING_RATE = 0.001
-__C.TRAIN.LEARNING_RATE = 0.000001
+__C.TRAIN.LEARNING_RATE = 0.001
+# __C.TRAIN.LEARNING_RATE = 0.000001
 
 # Momentum
 __C.TRAIN.MOMENTUM = 0.9
@@ -291,13 +291,19 @@ __C.BOX_CHAIN = True
 #ohem 3: 1 restrinct
 __C.TRAIN.OHEM4_2 = True
 __C.TRAIN.OHEM4_3 = True
-__C.TRAIN.OHEM5_2 = False
+__C.TRAIN.OHEM5_2 = True
 __C.TRAIN.OHEM5_3 = True
+
+#rpn batch size
+__C.TRAIN.C42_BATCH = 1028
+__C.TRAIN.C43_BATCH = 1028
+__C.TRAIN.C52_BATCH = 512
+__C.TRAIN.C53_BATCH = 256
 
 #focal loss
 __C.TRAIN.FOCAL_LOSS4_2 = False
 __C.TRAIN.FOCAL_LOSS4_3 = False
-__C.TRAIN.FOCAL_LOSS5_2 = True
+__C.TRAIN.FOCAL_LOSS5_2 = False
 __C.TRAIN.FOCAL_LOSS5_3 = False
 #--------------done------------#
 
