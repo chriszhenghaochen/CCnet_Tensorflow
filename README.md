@@ -62,7 +62,6 @@ If you want previous version (mAP,70.5%), please contact zhenghao.chen@sydney.ed
 # TODO:
 * [***FPN***](https://github.com/xmyqsh/FPN) baseline 
 * [***Refindet***](https://github.com/sfzhang15/RefineDet) Baseline 
-* Fix ***Tensorboard*** Bug
 * Add Proposal NMS, from [***SSD***](https://github.com/balancap/SSD-Tensorflow)
 
 # Experiment Log
