@@ -1,8 +1,6 @@
 # CCnet
 Replace lib folder in the [***tf-fast-rcnn***](https://github.com/endernewton/tf-faster-rcnn) and follow in instruction to run
 
-I will try to fix that problem as soon as possible, or any other ideas will be appreciated
-
 # Tensorflow
 now support Tensorflow 1.0.0 and 1.2.0, I will apprecite so much if anyone could help with Tensorflow 1.4.0
 
