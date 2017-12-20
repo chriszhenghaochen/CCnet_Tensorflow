@@ -122,11 +122,15 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
 
         pre_scores = pre_scores[inds_inside]
             
-        reject_number = int(len(inds_inside)*reject_factor)
+        neg_reject_number = int(len(inds_inside)*reject_factor*0.75) 
+        pos_reject_number = int(len(inds_inside)*reject_factor*0.25)
 
         pre_scores = pre_scores.ravel()
-        rejinds = pre_scores.argsort()[::-1][:reject_number]
 
+        neg_rejinds = pre_scores.argsort()[::-1][:neg_reject_number]
+        pos_rejinds = pre_scores.argsort()[:pos_reject_number]
+
+        rejinds = np.concatenate((pos_rejinds, neg_rejinds), axis=0)
         labels[rejinds] = -2
 
         #print(i , ' ', name , ' reject : ', len(np.where(labels == -2)[0]), ' anchors' )
@@ -146,11 +150,15 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
 
       pre_scores = pre_scores[inds_inside]
           
-      reject_number = int(len(inds_inside)*reject_factor)
+      neg_reject_number = int(len(inds_inside)*reject_factor*0.9)
+      pos_reject_number = int(len(inds_inside)*reject_factor*0.1)
 
       pre_scores = pre_scores.ravel()
-      rejinds = pre_scores.argsort()[::-1][:reject_number]
 
+      neg_rejinds = pre_scores.argsort()[::-1][:neg_reject_number]
+      pos_rejinds = pre_scores.argsort()[:pos_reject_number]
+        
+      rejinds = np.concatenate((pos_rejinds, neg_rejinds), axis=0)
       labels[rejinds] = -2
 
   
@@ -161,7 +169,8 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
   if OHEM == True:
     # subsample positive labels if we have too many
     # num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
-    num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * batch)
+    
+    num_fg = int(batch)
     fg_inds = np.where(labels == 1)[0]
     if len(fg_inds) > num_fg:
       disable_inds = npr.choice(
@@ -169,8 +178,13 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
       labels[disable_inds] = -1
 
     # subsample negative labels if we have too many
-    # num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
-    num_bg = batch - np.sum(labels == 1)
+    #num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
+
+    num_bg = len(fg_inds)*3
+    #in case nothing return
+    if num_bg < 100:
+      num_bg = num_fg*3
+
     bg_inds = np.where(labels == 0)[0]
     if len(bg_inds) > num_bg:
       disable_inds = npr.choice(
