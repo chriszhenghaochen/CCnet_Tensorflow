@@ -20,7 +20,6 @@ __C.TRAIN = edict()
 
 # Initial learning rate
 __C.TRAIN.LEARNING_RATE = 0.001
-# __C.TRAIN.LEARNING_RATE = 0.000001
 
 # Momentum
 __C.TRAIN.MOMENTUM = 0.9
@@ -254,7 +253,7 @@ __C.MATLAB = 'matlab'
 __C.EXP_DIR = 'default'
 
 # Use GPU implementation of non-maximum suppression
-__C.USE_GPU_NMS = False
+__C.USE_GPU_NMS = True
 
 # Default GPU device id
 __C.GPU_ID = 0
@@ -274,37 +273,29 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 
 #----------CCNet Config--------#
 #train
-__C.TRAIN.REJECT4_3 = 0.05
-__C.TRAIN.REJECT5_2 = 0.05
-__C.TRAIN.REJECT5_3 = 0.05
+__C.TRAIN.REJECT = 0.05
 
 #test
-__C.TEST.REJECT = 0
+__C.TEST.REJECT = 0.05
 
 #score factor
-__C.SCORE_FACTOR1 = 0.25
-__C.SCORE_FACTOR2 = 0.75
+__C.SCORE_FACTOR = 0.5
 
 #boxTrain
-__C.BOX_CHAIN = True
+__C.BOX_CHAIN = False
 
 #ohem 3: 1 restrinct
-__C.TRAIN.OHEM4_2 = True
-__C.TRAIN.OHEM4_3 = True
-__C.TRAIN.OHEM5_2 = False
-__C.TRAIN.OHEM5_3 = True
+__C.TRAIN.OHEM1 = False
+__C.TRAIN.OHEM2 = True
 
-#rpn batch size
-__C.TRAIN.C42_BATCH = 192
-__C.TRAIN.C43_BATCH = 128
-__C.TRAIN.C52_BATCH = 0
-__C.TRAIN.C53_BATCH = 84
+
+# FRCN BATCH
+__C.TRAIN.FRCN_BATCH1 = 512
+__C.TRAIN.FRCN_BATCH2 = 256
 
 #focal loss
-__C.TRAIN.FOCAL_LOSS4_2 = False
-__C.TRAIN.FOCAL_LOSS4_3 = False
-__C.TRAIN.FOCAL_LOSS5_2 = True
-__C.TRAIN.FOCAL_LOSS5_3 = False
+__C.TRAIN.FOCAL_LOSS1 = False
+__C.TRAIN.FOCAL_LOSS2 = False
 #--------------done------------#
 
 

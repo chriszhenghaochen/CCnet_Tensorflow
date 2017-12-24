@@ -17,6 +17,7 @@ from model.bbox_transform import bbox_transform
 from model.bbox_transform import bbox_transform_inv, clip_boxes
 
 boxChain = cfg.BOX_CHAIN
+bg_rej = cfg.bg_REJ
 
 def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anchors, num_anchors, pre_rpn_cls_prob, pre_bbox_pred, OHEM, reject, rej_inds, name, batch):
   """Same as the anchor target layer in original Fast/er RCNN """
@@ -122,8 +123,8 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
 
         pre_scores = pre_scores[inds_inside]
             
-        neg_reject_number = int(len(inds_inside)*reject_factor*0.75) 
-        pos_reject_number = int(len(inds_inside)*reject_factor*0.25)
+        neg_reject_number = int(len(inds_inside)*reject_factor*bg_rej) 
+        pos_reject_number = int(len(inds_inside)*reject_factor*(1 - bg_rej))
 
         pre_scores = pre_scores.ravel()
 
@@ -150,8 +151,8 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
 
       pre_scores = pre_scores[inds_inside]
           
-      neg_reject_number = int(len(inds_inside)*reject_factor*0.9)
-      pos_reject_number = int(len(inds_inside)*reject_factor*0.1)
+      neg_reject_number = int(len(inds_inside)*reject_factor*bg_rej)
+      pos_reject_number = int(len(inds_inside)*reject_factor*(1 - bg_rej))
 
       pre_scores = pre_scores.ravel()
 
