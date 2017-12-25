@@ -190,10 +190,10 @@ class vgg16(Network):
 
       pool5_flat = slim.flatten(pool5, scope='flatten') 
 
-      fc6 = slim.fully_connected(pool5_flat, 4096, scope='fc6')
+      fc6 = slim.fully_connected(pool5_flat, 4096, scope='fc6', reuse=True)
       if is_training:
         fc6 = slim.dropout(fc6, keep_prob=0.5, is_training=True, scope='dropout6')
-      fc7 = slim.fully_connected(fc6, 4096, scope='fc7')
+      fc7 = slim.fully_connected(fc6, 4096, scope='fc7', reuse=True)
       if is_training:
         fc7 = slim.dropout(fc7, keep_prob=0.5, is_training=True, scope='dropout7')
       cls_score = slim.fully_connected(fc7, self._num_classes, 

@@ -123,7 +123,7 @@ def proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, im_info, _feat_stride, ancho
   frcn_scores = pre_frcn_cls_score
 
   if frcn_scores.size != 0 :
-    frcn_scores = prefrcn_scores[top_inds]
+    frcn_scores = frcn_scores[top_inds]
     frcn_scores = frcn_scores[passinds]
   #------------------------------------------------------------------#
 
