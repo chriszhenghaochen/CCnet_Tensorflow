@@ -143,7 +143,7 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
     neg_frcn_cls_score = pre_frcn_cls_score[:, 0]
 
 
-    frcn_reject_number = int(len(neg_frcn_cls_score)*frcn_reject_train)
+    frcn_reject_number = int(len(neg_frcn_cls_score)*frcn_reject)
 
     neg_frcn_cls_score = neg_frcn_cls_score.ravel()
     frcn_rejinds = neg_frcn_cls_score.argsort()[::-1][:frcn_reject_number]
