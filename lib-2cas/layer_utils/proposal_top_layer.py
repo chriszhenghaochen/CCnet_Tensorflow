@@ -14,6 +14,7 @@ import numpy.random as npr
 
 reject_factor = cfg.TEST.REJECT
 boxChain = cfg.BOX_CHAIN
+frcn_reject = cfg.FRCN_REJCECT
 
 def proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, im_info, _feat_stride, anchors, num_anchors, pre_rpn_cls_prob_reshape, pre_bbox_pred, pre_top_inds, pre_passinds, pre_frcn_cls_score):
   """A layer that just selects the top region proposals
@@ -88,7 +89,7 @@ def proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, im_info, _feat_stride, ancho
     neg_frcn_cls_score = pre_frcn_cls_score[:, 0]
 
 
-    frcn_reject_number = int(len(neg_frcn_cls_score)*reject_factor)
+    frcn_reject_number = int(len(neg_frcn_cls_score)*frcn_reject)
 
     neg_frcn_cls_score = neg_frcn_cls_score.ravel()
     frcn_rejinds = neg_frcn_cls_score.argsort()[::-1][:frcn_reject_number]

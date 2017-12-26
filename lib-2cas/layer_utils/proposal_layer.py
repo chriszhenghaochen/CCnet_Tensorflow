@@ -16,6 +16,7 @@ import tensorflow as tf
 reject_factor = cfg.TEST.REJECT
 boxChain = cfg.BOX_CHAIN
 train_reject_factor = cfg.TRAIN.REJECT
+frcn_reject = cfg.FRCN_REJCECT
 
 def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, anchors, num_anchors, rej_inds, pre_rpn_cls_prob_reshape, pre_bbox_pred, name, pre_order, pre_keep, pre_passinds, target_keeps, pre_frcn_cls_score):
   """A simplified version compared to fast/er RCNN
@@ -142,7 +143,7 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
     neg_frcn_cls_score = pre_frcn_cls_score[:, 0]
 
 
-    frcn_reject_number = int(len(neg_frcn_cls_score)*train_reject_factor)
+    frcn_reject_number = int(len(neg_frcn_cls_score)*frcn_reject_train)
 
     neg_frcn_cls_score = neg_frcn_cls_score.ravel()
     frcn_rejinds = neg_frcn_cls_score.argsort()[::-1][:frcn_reject_number]
