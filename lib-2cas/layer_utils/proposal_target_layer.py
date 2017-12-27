@@ -15,7 +15,7 @@ from model.bbox_transform import bbox_transform
 from utils.cython_bbox import bbox_overlaps
 
 
-def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes, name, batch, pre_frcn_cls_score):
+def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
   """
   Assign object detection proposals to ground-truth targets. Produces proposal
   classification labels and bounding-box regression targets.
@@ -25,9 +25,6 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes, name, ba
   # (i.e., rpn.proposal_layer.ProposalLayer), or any other source
   all_rois = rpn_rois
   all_scores = rpn_scores
-
-  # print('rois ', all_rois.shape)
-  # print('scores ', all_scores.shape)
 
   # Include ground-truth boxes in the set of candidate rois
   if cfg.TRAIN.USE_GT:
@@ -39,19 +36,14 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes, name, ba
     all_scores = np.vstack((all_scores, zeros))
 
   num_images = 1
-
-  # rois_per_image = cfg.TRAIN.BATCH_SIZE / num_images
-  #FRCN
-  rois_per_image = batch / num_images
-
-
+  rois_per_image = cfg.TRAIN.BATCH_SIZE / num_images
   fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
   # Sample rois with classification labels and bounding box regression
   # targets
-  labels, rois, roi_scores, bbox_targets, bbox_inside_weights, keep_inds = _sample_rois(
+  labels, rois, roi_scores, bbox_targets, bbox_inside_weights = _sample_rois(
     all_rois, all_scores, gt_boxes, fg_rois_per_image,
-    rois_per_image, _num_classes, name)
+    rois_per_image, _num_classes)
 
   rois = rois.reshape(-1, 5)
   roi_scores = roi_scores.reshape(-1)
@@ -60,18 +52,7 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes, name, ba
   bbox_inside_weights = bbox_inside_weights.reshape(-1, _num_classes * 4)
   bbox_outside_weights = np.array(bbox_inside_weights > 0).astype(np.float32)
 
-  # #print('labels ', labels)
-  #print('rois ', rois.shape)
-  #print('roi score ', roi_scores.shape)
-
-  #frcn: process score
-
-  frcn_cls_score = pre_frcn_cls_score
-
-  if frcn_cls_score.size != 0:
-    frcn_cls_score = frcn_cls_score[keep_inds]
-
-  return rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, keep_inds, frcn_cls_score
+  return rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights
 
 
 def _get_bbox_regression_labels(bbox_target_data, num_classes):
@@ -115,7 +96,7 @@ def _compute_targets(ex_rois, gt_rois, labels):
     (labels[:, np.newaxis], targets)).astype(np.float32, copy=False)
 
 
-def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_image, num_classes, name):
+def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_image, num_classes):
   """Generate a random sample of RoIs comprising foreground and background
   examples.
   """
@@ -168,8 +149,4 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   bbox_targets, bbox_inside_weights = \
     _get_bbox_regression_labels(bbox_target_data, num_classes)
 
-
-  # #print debug
-  #print(name ,' targets_inds ', keep_inds)
-
-  return labels, rois, roi_scores, bbox_targets, bbox_inside_weights, keep_inds
+  return labels, rois, roi_scores, bbox_targets, bbox_inside_weights

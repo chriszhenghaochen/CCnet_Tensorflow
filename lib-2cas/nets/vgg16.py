@@ -16,17 +16,33 @@ import numpy as np
 from nets.network import Network
 from model.config import cfg
 
-factor = cfg.SCORE_FACTOR
-OHEM1 = cfg.TRAIN.OHEM1
-OHEM2 = cfg.TRAIN.OHEM2
+factor1 = cfg.SCORE_FACTOR1
+factor2 = cfg.SCORE_FACTOR2
 
-#FRCN BATCH
-frcn_batch1 = cfg.TRAIN.FRCN_BATCH1
-frcn_batch2 = cfg.TRAIN.FRCN_BATCH2
+OHEM4_2 = cfg.TRAIN.OHEM4_2
+OHEM4_3 = cfg.TRAIN.OHEM4_3
+OHEM5_2 = cfg.TRAIN.OHEM5_2
+OHEM5_3 = cfg.TRAIN.OHEM5_3
+
+reject4_3 = cfg.TRAIN.REJECT4_3
+reject5_2 = cfg.TRAIN.REJECT5_2
+reject5_3 = cfg.TRAIN.REJECT5_3
+
+test_reject4_3 = cfg.TEST.REJECT4_3
+test_reject5_2 = cfg.TEST.REJECT5_2
+test_reject5_3 = cfg.TEST.REJECT5_3
+
+batch42 = cfg.TRAIN.C42_BATCH
+batch43 = cfg.TRAIN.C43_BATCH
+batch52 = cfg.TRAIN.C52_BATCH
+batch53 = cfg.TRAIN.C53_BATCH
+
 
 class vgg16(Network):
   def __init__(self, batch_size=1):
     Network.__init__(self, batch_size=batch_size)
+
+    self.endpoint = {}
 
   def build_network(self, sess, is_training=True):
     with tf.variable_scope('vgg_16', 'vgg_16'):
@@ -47,87 +63,206 @@ class vgg16(Network):
       net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3],
                         trainable=is_training, scope='conv3')
       net = slim.max_pool2d(net, [2, 2], padding='SAME', scope='pool3')
-      net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3],
+
+
+      net = slim.repeat(net, 2, slim.conv2d, 512, [3, 3],
                         trainable=is_training, scope='conv4')
+      
+      #save conv4_3
+      self.endpoint['conv4_2'] = net
+      net = slim.conv2d(net, 512, [3, 3], trainable=is_training, scope = "conv4/conv4_3")
+
+      #save conv4_3
+      self.endpoint['conv4_3'] = net
+
       net = slim.max_pool2d(net, [2, 2], padding='SAME', scope='pool4')
-      # net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3],
-      #                   trainable=is_training, scope='conv5')
 
       net = slim.repeat(net, 2, slim.conv2d, 512, [3, 3],
                         trainable=is_training, scope='conv5')
 
-      # build the anchors for the image
-      self._anchor_component()
-
-      ##-----------------------------------------------rpn 1------------------------------------------------------------##
-      # rpn 1
-      rpn1 = slim.conv2d(net, 512, [3, 3], trainable=is_training, weights_initializer=initializer, scope="rpn1_conv/3x3")
-      self._act_summaries.append(rpn1)
-      rpn1_cls_score = slim.conv2d(rpn1, self._num_anchors * 2, [1, 1], trainable=is_training,
-                                  weights_initializer=initializer,
-                                  padding='VALID', activation_fn=None, scope='rpn1_cls_score')
-      # change it so that the score has 2 as its channel size
-      rpn1_cls_score_reshape = self._reshape_layer(rpn1_cls_score, 2, 'rpn1_cls_score_reshape')
-      rpn1_cls_prob_reshape = self._softmax_layer(rpn1_cls_score_reshape, "rpn1_cls_prob_reshape")
-      rpn1_cls_prob = self._reshape_layer(rpn1_cls_prob_reshape, self._num_anchors * 2, "rpn1_cls_prob")
-      rpn1_bbox_pred = slim.conv2d(rpn1, self._num_anchors * 4, [1, 1], trainable=is_training,
-                                  weights_initializer=initializer,
-                                  padding='VALID', activation_fn=None, scope='rpn1_bbox_pred')
-      if is_training:
-        # rois1, roi1_scores = self._proposal_layer(rpn1_cls_prob, rpn1_bbox_pred, "rois1")
-        rpn1_labels, rpn1_rej_inds = self._anchor_target_layer(rpn1_cls_score, "anchor1", [], [], OHEM1)
-        # # Try to have a determinestic order for the computing graph, for reproducibility
-
-        rois1, roi1_scores, frcn1_order, frcn1_keep, frcn1_passinds,frcn1_score = self._proposal_layer(rpn1_cls_prob, rpn1_bbox_pred, "rois1", [], [], [], [], [], [], [], [])
-
-        with tf.control_dependencies([rpn1_labels]):
-          rois1, _, rois1_keep_inds, frcn1_score = self._proposal_target_layer(rois1, roi1_scores, "rpn1_rois", frcn_batch1,frcn1_score)
-      else:
-        if cfg.TEST.MODE == 'nms':
-          rois1, _,  frcn1_order, frcn1_keep, frcn1_passinds, frcn1_score = self._proposal_layer(rpn1_cls_prob, rpn1_bbox_pred, "rois1", [], [], [], [], [], [], [], [])
-        elif cfg.TEST.MODE == 'top':
-          rois1, _, frcn1_top_inds, frcn1_passinds, frcn1_score = self._proposal_top_layer(rpn1_cls_prob, rpn1_bbox_pred, "rois1", [], [], [], [] ,[])
-        else:
-          raise NotImplementedError
-
-      # rcnn
-      if cfg.POOLING_MODE == 'crop':
-        pool51 = self._crop_pool_layer(net, rois1, "pool51")
-      else:
-        raise NotImplementedError
-
-      pool51_flat = slim.flatten(pool51, scope='flatten1') 
-
-      fc6 = slim.fully_connected(pool51_flat, 4096, scope='fc6')
-      if is_training:
-        fc6 = slim.dropout(fc6, keep_prob=0.5, is_training=True, scope='dropout6')
-      fc7 = slim.fully_connected(fc6, 4096, scope='fc7')
-      if is_training:
-        fc7 = slim.dropout(fc7, keep_prob=0.5, is_training=True, scope='dropout7')
-
-      cls1_score = slim.fully_connected(fc7, self._num_classes, 
-                                       weights_initializer=initializer,
-                                       trainable=is_training,
-                                       activation_fn=None, scope='cls1_score')
-      cls1_prob = self._softmax_layer(cls1_score, "cls1_prob")
-      bbox1_pred = slim.fully_connected(fc7, self._num_classes * 4, 
-                                       weights_initializer=initializer_bbox,
-                                       trainable=is_training,
-                                       activation_fn=None, scope='bbox1_pred')
-
-
-      ##---------------------------------------------rpn 1 done------------------------------------------------------------##
-
-      #continue conv5/conv5_3
+      #save conv5_2
+      self.endpoint['conv5_2'] = net
       net = slim.conv2d(net, 512, [3, 3], trainable=is_training, scope = "conv5/conv5_3")
 
-      #keep vgg network
+      #save conv5_3
+      self.endpoint['conv5_3'] = net
+
       self._act_summaries.append(net)
       self._layers['head'] = net
 
 
-      ##-----------------------------------------------rpn-----------------------------------------------------------------##
-      rpn = slim.conv2d(net, 512, [3, 3], trainable=is_training, weights_initializer=initializer, scope="rpn_conv/3x3")
+
+
+################################################################RPN#############################################################################
+
+      ##-----------------------------------------------rpn 4-2------------------------------------------------------------##
+      # rpn 4
+
+      # build the anchors for the image
+      self._anchor_component(4)
+
+      rpn4_2 = slim.conv2d(self.endpoint['conv4_2'], 512, [3, 3], trainable=is_training, weights_initializer=initializer, scope="rpn4_2_conv/3x3")
+      self._act_summaries.append(rpn4_2)
+      rpn4_2_cls_score = slim.conv2d(rpn4_2, self._num_anchors * 2, [1, 1], trainable=is_training,
+                                  weights_initializer=initializer,
+                                  padding='VALID', activation_fn=None, scope='rpn4_2_cls_score')
+      # change it so that the score has 2 as its channel size
+      rpn4_2_cls_score_reshape = self._reshape_layer(rpn4_2_cls_score, 2, 'rpn4_2_cls_score_reshape')
+      rpn4_2_cls_prob_reshape = self._softmax_layer(rpn4_2_cls_score_reshape, "rpn4_2_cls_prob_reshape")
+      rpn4_2_cls_prob = self._reshape_layer(rpn4_2_cls_prob_reshape, self._num_anchors * 2, "rpn4_2_cls_prob")
+
+
+      rpn4_2_cls_score_resize = slim.avg_pool2d(rpn4_2_cls_score, [2, 2], padding='SAME', scope='rpn4_2_cls_score_resize')
+      rpn4_2_cls_score_reshape_resize = self._reshape_layer(rpn4_2_cls_score, 2, 'rpn4_2_cls_score_reshape_resize')
+      rpn4_2_cls_prob_reshape_resize = self._softmax_layer(rpn4_2_cls_score_reshape_resize, "rpn4_2_cls_prob_reshape_resize")
+      rpn4_2_cls_prob_resize = self._reshape_layer(rpn4_2_cls_prob_reshape, self._num_anchors * 2, "rpn4_2_cls_prob_resize")
+
+      # #tmp not need: box
+      # rpn4_2_bbox_pred = slim.conv2d(rpn4_2, self._num_anchors * 4, [1, 1], trainable=is_training,
+      #                             weights_initializer=initializer,
+      #                             padding='VALID', activation_fn=None, scope='rpn4_2_bbox_pred')
+
+
+
+      if is_training:
+        # rois1, roi1_scores = self._proposal_layer(rpn4_2_cls_prob, rpn4_2_bbox_pred, "rois1")
+        rpn4_2_labels, rpn4_2_pass_inds, rpn4_2_rej_inds = self._anchor_target_layer(4, rpn4_2_cls_score, "anchor4_2", [], [], OHEM4_2, -1, [], batch42)
+        # # Try to have a determinestic order for the computing graph, for reproducibility
+        # with tf.control_dependencies([rpn4_2_labels]):
+        #   rois1, _ = self._proposal_target_layer(rois1, roi1_scores, "rpn4_2_rois")
+      # else:
+      #   if cfg.TEST.MODE == 'nms':
+      #     rois1, _ = self._proposal_layer(rpn4_2_cls_prob, rpn4_2_bbox_pred, "rois1", [])
+      #   elif cfg.TEST.MODE == 'top':
+      #     rois1, _ = self._proposal_top_layer(rpn4_2_cls_prob, rpn4_2_bbox_pred, "rois1")
+      #   else:
+      #     raise NotImplementedError
+
+      ##---------------------------------------------rpn 4-2 done------------------------------------------------------------## 
+
+      
+
+
+
+      ##-----------------------------------------------rpn 4-3------------------------------------------------------------##
+      # rpn 4
+
+      # build the anchors for the image
+      self._anchor_component(4)
+
+      rpn4_3 = slim.conv2d(self.endpoint['conv4_3'], 512, [3, 3], trainable=is_training, weights_initializer=initializer, scope="rpn4_3_conv/3x3")
+      self._act_summaries.append(rpn4_3)
+      rpn4_3_cls_score = slim.conv2d(rpn4_3, self._num_anchors * 2, [1, 1], trainable=is_training,
+                                  weights_initializer=initializer,
+                                  padding='VALID', activation_fn=None, scope='rpn4_3_cls_score')
+      # change it so that the score has 2 as its channel size
+      rpn4_3_cls_score_reshape = self._reshape_layer(rpn4_3_cls_score, 2, 'rpn4_3_cls_score_reshape')
+      rpn4_3_cls_prob_reshape = self._softmax_layer(rpn4_3_cls_score_reshape, "rpn4_3_cls_prob_reshape")
+      rpn4_3_cls_prob = self._reshape_layer(rpn4_3_cls_prob_reshape, self._num_anchors * 2, "rpn4_3_cls_prob")
+
+
+      # #tmp not need box
+      # rpn4_3_bbox_pred = slim.conv2d(rpn4_3, self._num_anchors * 4, [1, 1], trainable=is_training,
+      #                             weights_initializer=initializer,
+      #                             padding='VALID', activation_fn=None, scope='rpn4_3_bbox_pred')
+
+      
+      #add up 2 scores rpn4_2 and rpn
+      rpn4_cls_score = self._score_add_up(rpn4_2_cls_score, rpn4_3_cls_score, factor1, factor2, 'rpn4_cls_score')
+
+      #used added up score
+      rpn4_cls_score_reshape = self._reshape_layer(rpn4_cls_score, 2, 'rpn4_cls_score_reshape')
+      rpn4_cls_prob_reshape = self._softmax_layer(rpn4_cls_score_reshape, "rpn4_cls_prob_reshape")
+      rpn4_cls_prob = self._reshape_layer(rpn4_cls_prob_reshape, self._num_anchors * 2, "rpn4_cls_prob")
+
+
+      if is_training:
+        # rois1, roi1_scores = self._proposal_layer(rpn4_3_cls_prob, rpn4_3_bbox_pred, "rois1")
+        rpn4_3_labels, rpn4_3_pass_inds, rpn4_3_rej_inds = self._anchor_target_layer(4, rpn4_cls_score, "anchor4_3", rpn4_2_cls_prob_reshape, [], OHEM4_3, reject4_3,[], batch43)
+
+      #   #generate proposal - using add up score
+      #   rois4, roi4_scores = self._proposal_layer(4, rpn4_cls_prob, rpn4_3_bbox_pred, "rois4", rpn4_3_pass_inds, [], rpn4_2_bbox_pred)
+
+      #   # Try to have a determinestic order for the computing graph, for reproducibility
+      #   with tf.control_dependencies([rpn4_3_labels]):
+      #     rois4, _ = self._proposal_target_layer(rois4, roi4_scores, "rpn4_rois")
+      # else:
+      #   if cfg.TEST.MODE == 'nms':
+      #     # using added up score for proposal
+      #     rois4, _ = self._proposal_layer(4, rpn4_cls_prob, rpn4_3_bbox_pred, "rois4", [], rpn4_2_cls_score, rpn4_2_bbox_pred)
+      #   elif cfg.TEST.MODE == 'top':
+      #     # using added up score for proposal
+      #     rois4, _ = self._proposal_top_layer(4, rpn4_cls_prob, rpn4_3_bbox_pred, "rois4", rpn4_2_cls_score, rpn4_2_bbox_pred)
+      #   else:
+      #     raise NotImplementedError
+
+
+
+      ##---------------------------------------------rpn 4-3 done------------------------------------------------------------## 
+
+
+      #----------------------------------pass rpn4 information to rpn5-------------------------------------------------##
+      rpn4_cls_score_resize = slim.avg_pool2d(rpn4_cls_score, [2, 2], padding='SAME', scope='rpn4_cls_score_resize')
+      rpn4_cls_score_reshape_resize = self._reshape_layer(rpn4_cls_score, 2, 'rpn4_cls_score_reshape_resize')
+      rpn4_cls_prob_reshape_resize = self._softmax_layer(rpn4_cls_score_reshape_resize, "rpn4_cls_prob_reshape_resize")
+      rpn4_cls_prob_resize = self._reshape_layer(rpn4_cls_prob_reshape, self._num_anchors * 2, "rpn4_cls_prob_resize")
+
+      #tmp not need: box
+      #rpn4_3_bbox_pred_resize = slim.avg_pool2d(rpn4_3_bbox_pred, [2, 2], padding='SAME', scope='rpn4_3_bbox_pred_resize')
+
+      #------------------------------------------------done-------------------------------------------------------------#
+
+      ##-----------------------------------------------rpn 5-2------------------------------------------------------------##
+      # rpn 5-2
+
+      # build the anchors for the image
+      self._anchor_component(5)
+
+      rpn5 = slim.conv2d(self.endpoint['conv5_2'], 512, [3, 3], trainable=is_training, weights_initializer=initializer, scope="rpn5_conv/3x3")
+      self._act_summaries.append(rpn5)
+      rpn5_cls_score = slim.conv2d(rpn5, self._num_anchors * 2, [1, 1], trainable=is_training,
+                                  weights_initializer=initializer,
+                                  padding='VALID', activation_fn=None, scope='rpn5_cls_score')
+      # change it so that the score has 2 as its channel size
+      rpn5_cls_score_reshape = self._reshape_layer(rpn5_cls_score, 2, 'rpn5_cls_score_reshape')
+      rpn5_cls_prob_reshape = self._softmax_layer(rpn5_cls_score_reshape, "rpn5_cls_prob_reshape")
+      rpn5_cls_prob = self._reshape_layer(rpn5_cls_prob_reshape, self._num_anchors * 2, "rpn5_cls_prob")
+      rpn5_bbox_pred = slim.conv2d(rpn5, self._num_anchors * 4, [1, 1], trainable=is_training,
+                                  weights_initializer=initializer,
+                                  padding='VALID', activation_fn=None, scope='rpn5_bbox_pred')
+
+
+      #add up 2 scores rpn4 and rpn5
+      rpn45_cls_score = self._score_add_up(rpn4_cls_score_resize, rpn5_cls_score, factor1, factor2, 'rpn45_cls_score')
+
+      #used added up score
+      rpn45_cls_score_reshape = self._reshape_layer(rpn45_cls_score, 2, 'rpn45_cls_score_reshape')
+      rpn45_cls_prob_reshape = self._softmax_layer(rpn45_cls_score_reshape, "rpn45_cls_prob_reshape")
+      rpn45_cls_prob = self._reshape_layer(rpn45_cls_prob_reshape, self._num_anchors * 2, "rpn45_cls_prob")
+
+
+      rpn5_rej_inds = []
+      if is_training:
+        # rois1, roi1_scores = self._proposal_layer(rpn5_cls_prob, rpn5_bbox_pred, "rois1")
+        rpn5_labels, rpn5_pass_inds, rpn5_rej_inds = self._anchor_target_layer(5, rpn45_cls_score, "anchor5", [rpn4_cls_prob_reshape_resize, rpn4_2_cls_prob_reshape_resize], [], OHEM5_2, [reject5_2, reject4_3], [], batch52)
+        # # Try to have a determinestic order for the computing graph, for reproducibility
+        # with tf.control_dependencies([rpn5_labels]):
+        #   rois1, _ = self._proposal_target_layer(rois1, roi1_scores, "rpn5_rois")
+      # else:
+      #   if cfg.TEST.MODE == 'nms':
+      #     rois1, _ = self._proposal_layer(rpn5_cls_prob, rpn5_bbox_pred, "rois1", [])
+      #   elif cfg.TEST.MODE == 'top':
+      #     rois1, _ = self._proposal_top_layer(rpn5_cls_prob, rpn5_bbox_pred, "rois1")
+      #   else:
+      #     raise NotImplementedError
+
+      ##---------------------------------------------rpn 5-2 done------------------------------------------------------------##
+
+
+      ##-----------------------------------------------rpn 5-3-----------------------------------------------------------------##
+      self._anchor_component(5)
+
+      rpn = slim.conv2d(self.endpoint['conv5_3'], 512, [3, 3], trainable=is_training, weights_initializer=initializer, scope="rpn_conv/3x3")
       self._act_summaries.append(rpn)
       rpn_cls_score = slim.conv2d(rpn, self._num_anchors * 2, [1, 1], trainable=is_training,
                                   weights_initializer=initializer,
@@ -143,85 +278,96 @@ class vgg16(Network):
                                   weights_initializer=initializer,
                                   padding='VALID', activation_fn=None, scope='rpn_bbox_pred')
 
-      #add up 2 scores rpn1 and rpn
-      rpn12_cls_score = self._score_add_up(rpn1_cls_score, rpn_cls_score, factor, 'rpn12_cls_score')
+      #add up 2 scores rpn5 and rpn
+      rpn56_cls_score = self._score_add_up(rpn45_cls_score, rpn_cls_score, factor1, factor2, 'rpn56_cls_score')
 
       #used added up score
-      rpn12_cls_score_reshape = self._reshape_layer(rpn12_cls_score, 2, 'rpn12_cls_score_reshape')
-      rpn12_cls_prob_reshape = self._softmax_layer(rpn12_cls_score_reshape, "rpn12_cls_prob_reshape")
-      rpn12_cls_prob = self._reshape_layer(rpn12_cls_prob_reshape, self._num_anchors * 2, "rpn12_cls_prob")
+      rpn56_cls_score_reshape = self._reshape_layer(rpn56_cls_score, 2, 'rpn56_cls_score_reshape')
+      rpn56_cls_prob_reshape = self._softmax_layer(rpn56_cls_score_reshape, "rpn56_cls_prob_reshape")
+      rpn56_cls_prob = self._reshape_layer(rpn56_cls_prob_reshape, self._num_anchors * 2, "rpn56_cls_prob")
 
 
       if is_training:
         #compute anchor loss       
-        rpn_labels, rpn_rej_inds = self._anchor_target_layer(rpn_cls_score, "anchor", rpn1_cls_prob_reshape, rpn1_bbox_pred, OHEM2)
+        rpn_labels, rpn_pass_inds, rpn_rej_inds = self._anchor_target_layer(5, rpn56_cls_score, "anchor", rpn45_cls_prob_reshape, rpn5_bbox_pred, OHEM5_3, reject5_3, rpn5_rej_inds, batch53)
 
         # #compute anchor loss - using add up score       
-        #rpn_labels, rpn_pass_inds = self._anchor_target_layer(rpn12_cls_score, "anchor", rpn1_cls_prob_reshape, rpn1_bbox_pred, OHEM2)
+        #rpn_labels, rpn_pass_inds = self._anchor_target_layer(6, rpn56_cls_score, "anchor", rpn5_cls_prob_reshape, rpn5_bbox_pred, OHEM2)
 
         # #generate proposal
-        # rois, roi_scores = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois", rpn_pass_inds, [], rpn1_bbox_pred)
+        # rois, roi_scores = self._proposal_layer(6, rpn_cls_prob, rpn_bbox_pred, "rois", rpn_pass_inds, [], rpn5_bbox_pred)
 
         #generate proposal - using add up score
-        rois, roi_scores, frcn_order, frcn_keep, frcn_passinds, frcn2_score = self._proposal_layer(rpn12_cls_prob, rpn_bbox_pred, "rois", rpn_rej_inds, [], rpn1_bbox_pred, frcn1_order, frcn1_keep, frcn1_passinds, rois1_keep_inds, cls1_score)
+        rois, roi_scores = self._proposal_layer(5, rpn56_cls_prob, rpn_bbox_pred, "rois", rpn_pass_inds, [], rpn5_bbox_pred)
 
         # Try to have a determinestic order for the computing graph, for reproducibility
         with tf.control_dependencies([rpn_labels]):
-          rois, _, rois_keep_inds, frcn2_score = self._proposal_target_layer(rois, roi_scores, "rpn_rois", frcn_batch2, frcn2_score)
+          rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois")
       else:
         if cfg.TEST.MODE == 'nms':
-          # rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois", [], rpn_cls_prob_reshape, rpn1_bbox_pred)
+          # rois, _ = self._proposal_layer(6, rpn_cls_prob, rpn_bbox_pred, "rois", [], rpn_cls_prob_reshape, rpn5_bbox_pred)
           # using added up score for proposal
-          rois, _, frcn_order, frcn_keep, frcn_passinds, frcn2_score = self._proposal_layer(rpn12_cls_prob, rpn_bbox_pred, "rois", [], rpn1_cls_prob, rpn1_bbox_pred, frcn1_order, frcn1_keep, frcn1_passinds, [], cls1_score)
+          rois, _ = self._proposal_layer(5, rpn56_cls_prob, rpn_bbox_pred, "rois", [], rpn45_cls_prob, rpn5_bbox_pred)
         elif cfg.TEST.MODE == 'top':
-          # rois, _ = self._proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, "rois", rpn_cls_prob_reshape, rpn1_bbox_pred)
+          # rois, _ = self._proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, "rois", rpn_cls_prob_reshape, rpn5_bbox_pred)
           # using added up score for proposal
-          rois, _, frcn_top_inds, frcn_passinds, frcn2_score = self._proposal_top_layer(rpn12_cls_prob, rpn_bbox_pred, "rois", rpn1_cls_prob, rpn1_bbox_pred, frcn1_top_inds, frcn1_passinds, cls1_score)
+          rois, _ = self._proposal_top_layer(5, rpn56_cls_prob, rpn_bbox_pred, "rois", [rpn4_2_cls_prob_resize, rpn4_cls_prob_resize, rpn45_cls_prob] , rpn5_bbox_pred, [test_reject4_3, test_reject5_2, test_reject5_3])
         else:
           raise NotImplementedError
 
-      ##-----------------------------------------------rpn done--------------------------------------------------------------##
+      ##-----------------------------------------------rpn 5-3 done--------------------------------------------------------------##
 
+
+################################################################RPN finish#############################################################################
+      
       # rcnn
       if cfg.POOLING_MODE == 'crop':
-        pool5 = self._crop_pool_layer(net, rois, "pool5")
+        pool5 = self._crop_pool_layer(5, net, rois, "pool5")
       else:
         raise NotImplementedError
 
-      pool5_flat = slim.flatten(pool5, scope='flatten') 
-
-      fc6 = slim.fully_connected(pool5_flat, 4096, scope='fc6', reuse=True)
+      pool5_flat = slim.flatten(pool5, scope='flatten')
+      fc6 = slim.fully_connected(pool5_flat, 4096, scope='fc6')
       if is_training:
         fc6 = slim.dropout(fc6, keep_prob=0.5, is_training=True, scope='dropout6')
-      fc7 = slim.fully_connected(fc6, 4096, scope='fc7', reuse=True)
+      fc7 = slim.fully_connected(fc6, 4096, scope='fc7')
       if is_training:
         fc7 = slim.dropout(fc7, keep_prob=0.5, is_training=True, scope='dropout7')
       cls_score = slim.fully_connected(fc7, self._num_classes, 
                                        weights_initializer=initializer,
                                        trainable=is_training,
                                        activation_fn=None, scope='cls_score')
-
-
-       #add up 2 scores rpn1 and rpn
-      cls_score = self._score_add_up(frcn2_score, cls_score, factor, 'cls12_score')
-
       cls_prob = self._softmax_layer(cls_score, "cls_prob")
       bbox_pred = slim.fully_connected(fc7, self._num_classes * 4, 
                                        weights_initializer=initializer_bbox,
                                        trainable=is_training,
                                        activation_fn=None, scope='bbox_pred')
       
+      #store rpn4_2 values
+      self._predictions["rpn4_2_cls_score"] = rpn4_2_cls_score
+      self._predictions["rpn4_2_cls_score_reshape"] = rpn4_2_cls_score_reshape
+      self._predictions["rpn4_2_cls_prob"] = rpn4_2_cls_prob
+      
+      #tmp not need: box
+      #self._predictions["rpn4_2_bbox_pred"] = rpn4_2_bbox_pred  
 
-      #debug
-      #tmp = net['conv2/conv2_2']
-      #self._predictions['tmp'] = tmp
 
-      #store rpn1 values
-      self._predictions["rpn1_cls_score"] = rpn1_cls_score
-      self._predictions["rpn1_cls_score_reshape"] = rpn1_cls_score_reshape
-      self._predictions["rpn1_cls_prob"] = rpn1_cls_prob
-      self._predictions["rpn1_bbox_pred"] = rpn1_bbox_pred
+      #store rpn4_3 values
+      self._predictions["rpn4_3_cls_score"] = rpn4_3_cls_score
+      self._predictions["rpn4_3_cls_score_reshape"] = rpn4_3_cls_score_reshape
+      self._predictions["rpn4_3_cls_prob"] = rpn4_3_cls_prob
+
+      #tmp not need box
+      #self._predictions["rpn4_3_bbox_pred"] = rpn4_3_bbox_pred
+
+
+      #store rpn5 values
+      self._predictions["rpn5_cls_score"] = rpn5_cls_score
+      self._predictions["rpn5_cls_score_reshape"] = rpn5_cls_score_reshape
+      self._predictions["rpn5_cls_prob"] = rpn5_cls_prob
+      self._predictions["rpn5_bbox_pred"] = rpn5_bbox_pred
       #done
+
 
       #store rpn values
       self._predictions["rpn_cls_score"] = rpn_cls_score
@@ -230,18 +376,36 @@ class vgg16(Network):
       self._predictions["rpn_bbox_pred"] = rpn_bbox_pred
       #done
 
-      #store added up score values
-      self._predictions["rpn12_cls_score"] = rpn12_cls_score
-      self._predictions["rpn12_cls_score_reshape"] = rpn12_cls_score_reshape
-      self._predictions["rpn12_cls_prob"] = rpn12_cls_prob
+      #store added up 4 score values
+      self._predictions["rpn4_cls_score"] = rpn4_cls_score
+      self._predictions["rpn4_cls_score_reshape"] = rpn4_cls_score_reshape
+      self._predictions["rpn4_cls_prob"] = rpn4_cls_prob
       #done
 
-      #new fc
-      self._predictions["cls1_score"] = cls1_score
-      self._predictions["cls1_prob"] = cls1_prob
-      self._predictions["bbox1_pred"] = bbox1_pred
-      self._predictions["rois1"] = rois1
-      #
+      #store added up 45 score values
+      self._predictions["rpn45_cls_score"] = rpn45_cls_score
+      self._predictions["rpn45_cls_score_reshape"] = rpn45_cls_score_reshape
+      self._predictions["rpn45_cls_prob"] = rpn45_cls_prob
+      #done
+
+      #store added up 56 score values
+      self._predictions["rpn56_cls_score"] = rpn56_cls_score
+      self._predictions["rpn56_cls_score_reshape"] = rpn56_cls_score_reshape
+      self._predictions["rpn56_cls_prob"] = rpn56_cls_prob
+      #done
+
+      #store rpn4-resize values
+      self._predictions["rpn4_cls_score_resize"] = rpn4_cls_score_resize
+      self._predictions["rpn4_cls_score_reshape_resize"] = rpn4_cls_score_reshape_resize
+      self._predictions["rpn4_cls_prob_resize"] = rpn4_cls_prob_resize
+      #done
+
+      #store rpn4-resize values
+      self._predictions["rpn4_2_cls_score_resize"] = rpn4_2_cls_score_resize
+      self._predictions["rpn4_2_cls_score_reshape_resize"] = rpn4_2_cls_score_reshape_resize
+      self._predictions["rpn4_2_cls_prob_resize"] = rpn4_2_cls_prob_resize
+      #done
+
       self._predictions["cls_score"] = cls_score
       self._predictions["cls_prob"] = cls_prob
       self._predictions["bbox_pred"] = bbox_pred
