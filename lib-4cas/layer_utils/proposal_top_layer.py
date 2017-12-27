@@ -12,10 +12,10 @@ from model.config import cfg
 from model.bbox_transform import bbox_transform_inv, clip_boxes
 import numpy.random as npr
 
-reject_factor = cfg.TEST.REJECT
+
 boxChain = cfg.BOX_CHAIN
 
-def proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, im_info, _feat_stride, anchors, num_anchors, pre_rpn_cls_prob_reshape, pre_bbox_pred):
+def proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, im_info, _feat_stride, anchors, num_anchors, pre_rpn_cls_prob, pre_bbox_pred, reject):
   """A layer that just selects the top region proposals
      without using non-maximal suppression,
      For details please see the technical report
@@ -47,37 +47,21 @@ def proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, im_info, _feat_stride, ancho
   ##----------------------------------------chris------------------------------------------------##
 
   #--------------------------TEST Reject------------------------------#
-  if pre_rpn_cls_prob_reshape.size != 0:
+  if pre_rpn_cls_prob.size != 0:
 
-      # #combine SCORE
-      pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob_reshape,[0,3,1,2])
-      pre_scores = pre_rpn_cls_prob_reshape[:, num_anchors:, :, :]
-      pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
-         
-      #reject via factor:
-      reject_number = int(len(pre_scores)*reject_factor)
+      for i in range(len(pre_rpn_cls_prob)):
+        # #combine SCORE
+        pre_rpn_cls_prob_reshape = pre_rpn_cls_prob[i]
+        reject_factor = reject[i]
+
+        pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob_reshape,[0,3,1,2])
+        pre_scores = pre_rpn_cls_prob_reshape[:, :num_anchors, :, :]
+        pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
 
 
-      #set up pass number
-      passnumber = len(pre_scores) - reject_number
-
-      if passnumber <= 0:
-         passnumber = 1
-
-      #set up pass index
-      pre_scores = pre_scores.ravel()
-      passinds = pre_scores.argsort()[::-1][:passnumber]
-
-      #in case cuda error occur
-      if passinds is None or passinds.size == 0:          
-        passinds = np.array([0])
-        print(passinds)
-
-      passinds.sort()
-
-      #reject here
-      anchors = anchors[passinds, :]
-      scores = scores[passinds]
+        pre_scores = pre_scores.ravel()
+        rejinds = np.where(pre_scores >= reject_factor)
+        scores[rejinds] = -2
   #-------------------------------done---------------------------------#
 
 
@@ -95,6 +79,14 @@ def proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, im_info, _feat_stride, ancho
   anchors = anchors[top_inds, :]
   rpn_bbox_pred = rpn_bbox_pred[top_inds, :]
   scores = scores[top_inds]
+
+  #--------------TEST REJECT WILL BE SETTTING UP HERE------------------#
+  passinds = np.where(scores != -1)[0]
+
+  anchors = anchors[passinds, :]
+  rpn_bbox_pred = rpn_bbox_pred[passinds, :]
+  scores = scores[passinds]
+  #--------------------------------------------------------------------#
 
   # Convert anchors into proposals via bbox transformations
   proposals = bbox_transform_inv(anchors, rpn_bbox_pred)

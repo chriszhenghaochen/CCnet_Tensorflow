@@ -103,9 +103,9 @@ class SolverWrapper(object):
       layers = self.net.create_architecture(sess, 'TRAIN', self.imdb.num_classes, tag='default',
                                             anchor_scales=cfg.ANCHOR_SCALES,
                                             anchor_ratios=cfg.ANCHOR_RATIOS)
+
       # Define the loss
       loss = layers['total_loss']
-
       # Set learning rate and momentum
       lr = tf.Variable(cfg.TRAIN.LEARNING_RATE, trainable=False)
       momentum = cfg.TRAIN.MOMENTUM
@@ -113,35 +113,29 @@ class SolverWrapper(object):
 
       # Compute the gradients wrt the loss
       gvs = self.optimizer.compute_gradients(loss)
-
-      #print(gvs)
-
       # Double the gradient of the bias if set
       if cfg.TRAIN.DOUBLE_BIAS:
         final_gvs = []
         with tf.variable_scope('Gradient_Mult') as scope:
           for grad, var in gvs:
-            # print('var ', var)
-
             scale = 1.
             if cfg.TRAIN.DOUBLE_BIAS and '/biases:' in var.name:
               scale *= 2.
             if not np.allclose(scale, 1.0):
-
-              #print('grad ', grad)
-              #print('scale ', scale)
-
               grad = tf.multiply(grad, scale)
             final_gvs.append((grad, var))
         train_op = self.optimizer.apply_gradients(final_gvs)
       else:
         train_op = self.optimizer.apply_gradients(gvs)
 
+
       # We will handle the snapshots ourselves
       self.saver = tf.train.Saver(max_to_keep=100000)
       # Write the train and validation information to tensorboard
       self.writer = tf.summary.FileWriter(self.tbdir, sess.graph)
       self.valwriter = tf.summary.FileWriter(self.tbvaldir)
+
+
 
     # Find previous snapshots if there is any to restore from
     sfiles = os.path.join(self.output_dir, cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_*.ckpt.meta')
@@ -230,14 +224,13 @@ class SolverWrapper(object):
 
       now = time.time()
 
-      # # DEBUG
-      #rpn4_2s, rpn4_2b, cp4_2, rpn4_3s, rpn4_3b, cp4_3, rpn5s, rpn5b, cp5, rpns, rpnb, cp, cp1 = self.net.DEBUG(sess, blobs)
-      # rpn4_2_loss_cls, rpn4_3_loss_cls, rpn5_loss_cls, rpn5_loss_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = self.net.DEBUG(sess, blobs)
+      # # #DEBUG
+      # p5, p6 = self.net.DEBUG(sess, blobs)
+      # print('cls1', np.asarray(p5).shape)
+      # print('cls2', np.asarray(p6).shape)
+      # # print('cls ', cls.shape)
 
-      # print('total loss: %.6f\n >>> rpn4_2_loss_cls: %.6f\n >>> rpn4_3_loss_cls: %.6f\n >>> rpn5_loss_cls: %.6f\n >>> rpn5_loss_box: %.6f\n >>> rpn_loss_cls: %.6f\n '
-      #         '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
-      #         (total_loss, rpn4_2_loss_cls, rpn4_3_loss_cls, rpn5_loss_cls, rpn5_loss_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
-      
+
       if now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
 
         # Compute the graph with summary
@@ -245,7 +238,7 @@ class SolverWrapper(object):
         #   self.net.train_step_with_summary(sess, blobs, train_op)
 
         #new train step
-        rpn4_2_loss_cls, rpn4_3_loss_cls, rpn5_loss_cls, rpn5_loss_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
+        rpn1_loss_cls, rpn1_loss_box, loss1_cls, loss1_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
             self.net.train_step_with_summary(sess, blobs, train_op)
         #done
 
@@ -261,7 +254,7 @@ class SolverWrapper(object):
         #   self.net.train_step(sess, blobs, train_op)
 
         #new train step
-        rpn4_2_loss_cls, rpn4_3_loss_cls, rpn5_loss_cls, rpn5_loss_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
+        rpn1_loss_cls, rpn1_loss_box, loss1_cls, loss1_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
           self.net.train_step(sess, blobs, train_op)
 
       timer.toc()
@@ -273,9 +266,9 @@ class SolverWrapper(object):
         #       (iter, max_iters, total_loss, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
 
         #new showing up
-        print('iter: %d / %d, total loss: %.6f\n >>> rpn4_2_loss_cls: %.6f\n >>> rpn4_3_loss_cls: %.6f\n >>> rpn5_loss_cls: %.6f\n >>> rpn5_loss_box: %.6f\n >>> rpn_loss_cls: %.6f\n '
+        print('iter: %d / %d, total loss: %.6f\n >>> rpn1_loss_cls: %.6f\n >>> rpn1_loss_box: %.6f\n  >>> loss1_cls: %.6f\n >>> loss1_box: %.6f\n >>> rpn_loss_cls: %.6f\n '
               '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
-              (iter, max_iters, total_loss, rpn4_2_loss_cls, rpn4_3_loss_cls, rpn5_loss_cls, rpn5_loss_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
+              (iter, max_iters, total_loss, rpn1_loss_cls, rpn1_loss_box, loss1_cls, loss1_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
         #new showing up
 
         print('speed: {:.3f}s / iter'.format(timer.average_time))
@@ -365,7 +358,7 @@ def train_net(network, imdb, roidb, valroidb, output_dir, tb_dir,
   valroidb = filter_roidb(valroidb)
 
   tfconfig = tf.ConfigProto(allow_soft_placement=True)
-  tfconfig.gpu_options.allow_growth = True
+  #tfconfig.gpu_options.allow_growth = True
 
   with tf.Session(config=tfconfig) as sess:
     sw = SolverWrapper(sess, network, imdb, roidb, valroidb, output_dir, tb_dir,

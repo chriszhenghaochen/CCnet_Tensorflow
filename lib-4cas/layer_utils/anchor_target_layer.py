@@ -121,16 +121,21 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
         pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
 
         pre_scores = pre_scores[inds_inside]
-            
-        neg_reject_number = int(len(inds_inside)*reject_factor*0.75) 
-        pos_reject_number = int(len(inds_inside)*reject_factor*0.25)
+        
+        # reject via factor 
+        # neg_reject_number = int(len(inds_inside)*reject_factor*0.75) 
+        # pos_reject_number = int(len(inds_inside)*reject_factor*0.25)
 
+        # pre_scores = pre_scores.ravel()
+
+        # neg_rejinds = pre_scores.argsort()[::-1][:neg_reject_number]
+        # pos_rejinds = pre_scores.argsort()[:pos_reject_number]
+
+        # rejinds = np.concatenate((pos_rejinds, neg_rejinds), axis=0)
+
+        #reject via probs
         pre_scores = pre_scores.ravel()
-
-        neg_rejinds = pre_scores.argsort()[::-1][:neg_reject_number]
-        pos_rejinds = pre_scores.argsort()[:pos_reject_number]
-
-        rejinds = np.concatenate((pos_rejinds, neg_rejinds), axis=0)
+        rejinds = np.where(pre_scores >= reject_factor)
         labels[rejinds] = -2
 
         #print(i , ' ', name , ' reject : ', len(np.where(labels == -2)[0]), ' anchors' )
@@ -150,15 +155,17 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
 
       pre_scores = pre_scores[inds_inside]
           
-      neg_reject_number = int(len(inds_inside)*reject_factor*0.9)
-      pos_reject_number = int(len(inds_inside)*reject_factor*0.1)
+      # neg_reject_number = int(len(inds_inside)*reject_factor*0.9)
+      # pos_reject_number = int(len(inds_inside)*reject_factor*0.1)
 
-      pre_scores = pre_scores.ravel()
+      # pre_scores = pre_scores.ravel()
 
-      neg_rejinds = pre_scores.argsort()[::-1][:neg_reject_number]
-      pos_rejinds = pre_scores.argsort()[:pos_reject_number]
+      # neg_rejinds = pre_scores.argsort()[::-1][:neg_reject_number]
+      # pos_rejinds = pre_scores.argsort()[:pos_reject_number]
         
-      rejinds = np.concatenate((pos_rejinds, neg_rejinds), axis=0)
+      # rejinds = np.concatenate((pos_rejinds, neg_rejinds), axis=0)
+      pre_scores = pre_scores.ravel()
+      rejinds = np.where(pre_scores >= reject_factor)
       labels[rejinds] = -2
 
   

@@ -136,11 +136,11 @@ class Network(object):
       return tf.reshape(reshaped_score, input_shape)
     return tf.nn.softmax(bottom, name=name)
 
-  def _proposal_top_layer(self, num, rpn_cls_prob, rpn_bbox_pred, name, pre_rpn_cls_prob, pre_rpn_bbox_pred):
+  def _proposal_top_layer(self, num, rpn_cls_prob, rpn_bbox_pred, name, pre_rpn_cls_prob, pre_rpn_bbox_pred, reject):
     with tf.variable_scope(name) as scope:
       rois, rpn_scores = tf.py_func(proposal_top_layer,
                                     [rpn_cls_prob, rpn_bbox_pred, self._im_info,
-                                     self._feat_stride[num], self._anchors[num], self._num_anchors, pre_rpn_cls_prob, pre_rpn_bbox_pred],
+                                     self._feat_stride[num], self._anchors[num], self._num_anchors, pre_rpn_cls_prob, pre_rpn_bbox_pred, reject],
                                     [tf.float32, tf.float32])
       rois.set_shape([cfg.TEST.RPN_TOP_N, 5])
       rpn_scores.set_shape([cfg.TEST.RPN_TOP_N, 1])
@@ -519,7 +519,7 @@ class Network(object):
       # loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
 
       #new loss with rpn5
-      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + rpn5_cross_entropy*0.5 + rpn5_loss_box*0.5 + rpn4_3_cross_entropy*0.25 + rpn4_2_cross_entropy*0.125
+      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + rpn5_cross_entropy*0.25 + rpn5_loss_box*0.25 + rpn4_3_cross_entropy*0.125 + rpn4_2_cross_entropy*0.075
 
       self._losses['total_loss'] = loss
 

@@ -274,16 +274,19 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 
 #----------CCNet Config--------#
 #train
-__C.TRAIN.REJECT4_3 = 0.1
-__C.TRAIN.REJECT5_2 = 0.1
-__C.TRAIN.REJECT5_3 = 0.1
+__C.TRAIN.REJECT4_3 = 0.99
+__C.TRAIN.REJECT5_2 = 0.95
+__C.TRAIN.REJECT5_3 = 0.9
 
 #test
-__C.TEST.REJECT = 0
+__C.TEST.REJECT4_3 = 0.99
+__C.TEST.REJECT5_2 = 0.95
+__C.TEST.REJECT5_3 = 0.9
+
 
 #score factor
-__C.SCORE_FACTOR1 = 0.25
-__C.SCORE_FACTOR2 = 0.75
+__C.SCORE_FACTOR1 = 0.34
+__C.SCORE_FACTOR2 = 0.63
 
 #boxTrain
 __C.BOX_CHAIN = True

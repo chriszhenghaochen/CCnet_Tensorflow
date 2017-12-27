@@ -28,6 +28,10 @@ reject4_3 = cfg.TRAIN.REJECT4_3
 reject5_2 = cfg.TRAIN.REJECT5_2
 reject5_3 = cfg.TRAIN.REJECT5_3
 
+test_reject4_3 = cfg.TEST.REJECT4_3
+test_reject5_2 = cfg.TEST.REJECT5_2
+test_reject5_3 = cfg.TEST.REJECT5_3
+
 batch42 = cfg.TRAIN.C42_BATCH
 batch43 = cfg.TRAIN.C43_BATCH
 batch52 = cfg.TRAIN.C52_BATCH
@@ -307,7 +311,7 @@ class vgg16(Network):
         elif cfg.TEST.MODE == 'top':
           # rois, _ = self._proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, "rois", rpn_cls_prob_reshape, rpn5_bbox_pred)
           # using added up score for proposal
-          rois, _ = self._proposal_top_layer(5, rpn56_cls_prob, rpn_bbox_pred, "rois", rpn45_cls_prob, rpn5_bbox_pred)
+          rois, _ = self._proposal_top_layer(5, rpn56_cls_prob, rpn_bbox_pred, "rois", [rpn4_2_cls_prob_resize, rpn4_cls_prob_resize, rpn45_cls_prob] , rpn5_bbox_pred, [test_reject4_3, test_reject5_2, test_reject5_3])
         else:
           raise NotImplementedError
 

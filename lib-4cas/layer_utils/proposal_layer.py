@@ -12,7 +12,6 @@ from model.config import cfg
 from model.bbox_transform import bbox_transform_inv, clip_boxes
 from model.nms_wrapper import nms
 
-reject_factor = cfg.TEST.REJECT
 boxChain = cfg.BOX_CHAIN
 
 def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, anchors, num_anchors, pass_inds, pre_rpn_cls_prob_reshape, pre_bbox_pred):
@@ -79,39 +78,39 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
 
   # print('after reject',scores.size)
 
-  #--------------------------TEST Reject------------------------------#
-  if cfg_key == 'TEST' and pre_rpn_cls_prob_reshape.size != 0:
+  # #--------------------------TEST Reject, we will not use this for most case------------------------------#
+  # if cfg_key == 'TEST' and pre_rpn_cls_prob_reshape.size != 0:
 
-      # #combine SCORE
-      pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob_reshape,[0,3,1,2])
-      pre_scores = pre_rpn_cls_prob_reshape[:, num_anchors:, :, :]
-      pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
+  #     # #combine SCORE
+  #     pre_rpn_cls_prob_reshape = np.transpose(pre_rpn_cls_prob_reshape,[0,3,1,2])
+  #     pre_scores = pre_rpn_cls_prob_reshape[:, :num_anchors, :, :]
+  #     pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
          
-      #reject via factor:
-      reject_number = int(len(pre_scores)*reject_factor)
+  #     #reject via factor:
+  #     reject_number = int(len(pre_scores)*reject_factor)
 
 
-      #set up pass number
-      passnumber = len(pre_scores) - reject_number
+  #     #set up pass number
+  #     passnumber = len(pre_scores) - reject_number
 
-      if passnumber <= 0:
-         passnumber = 1
+  #     if passnumber <= 0:
+  #        passnumber = 1
 
-      #set up pass index
-      pre_scores = pre_scores.ravel()
-      passinds = pre_scores.argsort()[::-1][:passnumber]
+  #     #set up pass index
+  #     pre_scores = pre_scores.ravel()
+  #     passinds = pre_scores.argsort()[::-1][:passnumber]
 
-      #in case cuda error occur
-      if passinds is None or passinds.size == 0:          
-        passinds = np.array([0])
-        #print(passinds)
+  #     #in case cuda error occur
+  #     if passinds is None or passinds.size == 0:          
+  #       passinds = np.array([0])
+  #       #print(passinds)
 
-      passinds.sort()
+  #     passinds.sort()
 
-      #reject here
-      proposals = proposals[passinds, :]
-      scores = scores[passinds]
-  #-------------------------------done---------------------------------#
+  #     #reject here
+  #     proposals = proposals[passinds, :]
+  #     scores = scores[passinds]
+  # #---------------------------------------------------------done---------------------------------------------#
 
 
   #print('proposal ',proposals)
