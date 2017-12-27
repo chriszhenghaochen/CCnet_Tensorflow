@@ -194,8 +194,8 @@ __C.TEST.RPN_POST_NMS_TOP_N = 300
 
 # Testing mode, default to be 'nms', 'top' is slower but better
 # See report for details
-# __C.TEST.MODE = 'nms'
 __C.TEST.MODE = 'top'
+#__C.TEST.MODE = 'nms'
 
 # Only useful when TEST.MODE is 'top', specifies the number of top proposals to select
 __C.TEST.RPN_TOP_N = 5000
@@ -273,13 +273,10 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 
 
 #----------CCNet Config--------#
-#cascade partition
-__C.BG_REJ = 0.1
-
 #train
-__C.TRAIN.REJECT4_3 = 0.05
-__C.TRAIN.REJECT5_2 = 0.05
-__C.TRAIN.REJECT5_3 = 0.05
+__C.TRAIN.REJECT4_3 = 0.1
+__C.TRAIN.REJECT5_2 = 0.1
+__C.TRAIN.REJECT5_3 = 0.1
 
 #test
 __C.TEST.REJECT = 0
@@ -301,12 +298,12 @@ __C.TRAIN.OHEM5_3 = True
 __C.TRAIN.C42_BATCH = 192
 __C.TRAIN.C43_BATCH = 128
 __C.TRAIN.C52_BATCH = 0
-__C.TRAIN.C53_BATCH = 84
+__C.TRAIN.C53_BATCH = 64
 
 #focal loss
 __C.TRAIN.FOCAL_LOSS4_2 = False
 __C.TRAIN.FOCAL_LOSS4_3 = False
-__C.TRAIN.FOCAL_LOSS5_2 = True
+__C.TRAIN.FOCAL_LOSS5_2 = False
 __C.TRAIN.FOCAL_LOSS5_3 = False
 #--------------done------------#
 
