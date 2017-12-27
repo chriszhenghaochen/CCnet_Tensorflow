@@ -11,6 +11,7 @@ import numpy as np
 from model.config import cfg
 from model.bbox_transform import bbox_transform_inv, clip_boxes
 import numpy.random as npr
+from layer_utils.softmax import softmax
 
 reject_factor = cfg.TEST.REJECT
 boxChain = cfg.BOX_CHAIN
@@ -57,12 +58,15 @@ def proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, im_info, _feat_stride, ancho
       pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
       
       #reject via factor:
-      reject_number = int(len(pre_scores)*reject_factor)
+      # reject_number = int(len(pre_scores)*reject_factor)
 
-      #set up pass index
+      # #set up pass index
+      # pre_scores = pre_scores.ravel()
+      # rpn_rejinds = pre_scores.argsort()[::-1][:reject_number]
+
       pre_scores = pre_scores.ravel()
-      rpn_rejinds = pre_scores.argsort()[::-1][:reject_number]
 
+      rpn_rejinds = np.where(pre_scores > reject_factor)
 
       rpn_rejinds.sort()
 
@@ -86,14 +90,18 @@ def proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, im_info, _feat_stride, ancho
 
   #--------------------------FRCN reject----------------------------#
   if pre_frcn_cls_score.size != 0:
-    neg_frcn_cls_score = pre_frcn_cls_score[:, 0]
+    # neg_frcn_cls_score = pre_frcn_cls_score[:, 0]
 
 
-    frcn_reject_number = int(len(neg_frcn_cls_score)*frcn_reject)
+    # frcn_reject_number = int(len(neg_frcn_cls_score)*frcn_reject)
 
-    neg_frcn_cls_score = neg_frcn_cls_score.ravel()
-    frcn_rejinds = neg_frcn_cls_score.argsort()[::-1][:frcn_reject_number]
+    # neg_frcn_cls_score = neg_frcn_cls_score.ravel()
+    # frcn_rejinds = neg_frcn_cls_score.argsort()[::-1][:frcn_reject_number]
 
+    frcn_prob = softmax(pre_frcn_cls_score, theta = 0.5, axis = 1)
+    neg_frcn_prob = frcn_prob[:, 0] 
+
+    frcn_rejinds = np.where(neg_frcn_prob >= frcn_reject)
     
     scores[frcn_rejinds] = -1
   ######################################################################

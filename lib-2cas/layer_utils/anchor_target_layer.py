@@ -114,17 +114,19 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
 
     pre_scores = pre_scores[inds_inside]
         
-    reject_number = int(len(inds_inside)*reject_factor)
+    # reject_number = int(len(inds_inside)*reject_factor)
+
+    # pre_scores = pre_scores.ravel()
+    # rejinds = pre_scores.argsort()[::-1][:reject_number]
 
     pre_scores = pre_scores.ravel()
-    rejinds = pre_scores.argsort()[::-1][:reject_number]
 
-    
+    rejinds = np.where(pre_scores >= reject_factor)
+    # print(rejinds)
+
     labels[rejinds] = -2
 
-
-
-    #print('reject : ', len(np.where(labels == -2)[0]), ' anchors' )
+    # print('reject : ', len(np.where(labels == -2)[0]), ' anchors' )
   
   ###-------------------------reject done-----------------------------###
 

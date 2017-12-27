@@ -273,20 +273,19 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 
 #----------CCNet Config--------#
 #train
-__C.TRAIN.REJECT = 0.2
+__C.TRAIN.REJECT = 0.9
 
 #test
-__C.TEST.REJECT = 0.2
+__C.TEST.REJECT = 0.9
 
 #FRCN REJECT
-
-__C.FRCN_REJCECT = 0.05
+__C.FRCN_REJCECT = 0.99
 
 #score factor
 __C.SCORE_FACTOR = 0.5
 
 #boxTrain
-__C.BOX_CHAIN = False
+__C.BOX_CHAIN = True
 
 #ohem 3: 1 restrinct
 __C.TRAIN.OHEM1 = False

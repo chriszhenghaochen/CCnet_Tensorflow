@@ -12,6 +12,7 @@ from model.config import cfg
 from model.bbox_transform import bbox_transform_inv, clip_boxes
 from model.nms_wrapper import nms
 import tensorflow as tf
+from layer_utils.softmax import softmax
 
 reject_factor = cfg.TEST.REJECT
 boxChain = cfg.BOX_CHAIN
@@ -96,17 +97,21 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
       pre_scores = pre_rpn_cls_prob_reshape[:,:num_anchors, :, :]
       pre_scores = pre_scores.transpose((0, 2, 3, 1)).reshape((-1, 1))
          
-      #reject via factor:
-      reject_number = int(len(pre_scores)*reject_factor)
+      # #reject via factor:
+      # reject_number = int(len(pre_scores)*reject_factor)
 
-      #set up pass index
-      pre_scores = pre_scores.ravel()
-      rpn_rejinds = pre_scores.argsort()[::-1][:reject_number]
+      # #set up pass index
+      # pre_scores = pre_scores.ravel()
+      # rpn_rejinds = pre_scores.argsort()[::-1][:reject_number]
 
       # #in case cuda error occur
       # if rpn_passinds is None or rpn_passinds.size == 0:          
       #   rpn_passinds = np.array([0])
       #   print(rpn_passinds)
+
+      #reject via probs
+      pre_scores = pre_scores.ravel()
+      rpn_rejinds = np.where(pre_scores >= reject_factor)
 
       rpn_rejinds.sort()
 
@@ -140,16 +145,37 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
   
   #####################reject via frcn##############
   if pre_frcn_cls_score.size != 0:
-    neg_frcn_cls_score = pre_frcn_cls_score[:, 0]
+    
+    #reject via portion
+    # neg_frcn_cls_score = pre_frcn_cls_score[:, 0]
 
 
-    frcn_reject_number = int(len(neg_frcn_cls_score)*frcn_reject)
+    # frcn_reject_number = int(len(neg_frcn_cls_score)*frcn_reject)
 
-    neg_frcn_cls_score = neg_frcn_cls_score.ravel()
-    frcn_rejinds = neg_frcn_cls_score.argsort()[::-1][:frcn_reject_number]
+    # neg_frcn_cls_score = neg_frcn_cls_score.ravel()
+    # frcn_rejinds = neg_frcn_cls_score.argsort()[::-1][:frcn_reject_number]
 
     
+    # scores[frcn_rejinds] = -1
+
+    #reject via negative
+    
+    frcn_prob = softmax(pre_frcn_cls_score, theta = 0.5, axis = 1)
+    neg_frcn_prob = frcn_prob[:, 0] 
+
+
+    # #print('prob', frcn_prob)
+    # for i in range(100):
+    #   print('sum', sum(frcn_prob[i]))
+
+    # #print(neg_frcn_prob)
+
+    frcn_rejinds = np.where(neg_frcn_prob >= frcn_reject)
+
+    # print(frcn_rejinds)
+
     scores[frcn_rejinds] = -1
+
 
   ##################################################
 
@@ -205,3 +231,8 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
     frcn_cls_score = frcn_cls_score[passinds]
 
   return blob, scores, order, keep, passinds, frcn_cls_score 
+
+
+
+
+
