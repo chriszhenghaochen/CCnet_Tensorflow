@@ -113,9 +113,9 @@ class vgg16(Network):
 
 
       rpn4_2_cls_score_resize = slim.avg_pool2d(rpn4_2_cls_score, [2, 2], padding='SAME', scope='rpn4_2_cls_score_resize')
-      rpn4_2_cls_score_reshape_resize = self._reshape_layer(rpn4_2_cls_score, 2, 'rpn4_2_cls_score_reshape_resize')
+      rpn4_2_cls_score_reshape_resize = self._reshape_layer(rpn4_2_cls_score_resize, 2, 'rpn4_2_cls_score_reshape_resize')
       rpn4_2_cls_prob_reshape_resize = self._softmax_layer(rpn4_2_cls_score_reshape_resize, "rpn4_2_cls_prob_reshape_resize")
-      rpn4_2_cls_prob_resize = self._reshape_layer(rpn4_2_cls_prob_reshape, self._num_anchors * 2, "rpn4_2_cls_prob_resize")
+      rpn4_2_cls_prob_resize = self._reshape_layer(rpn4_2_cls_prob_reshape_resize, self._num_anchors * 2, "rpn4_2_cls_prob_resize")
 
       # #tmp not need: box
       # rpn4_2_bbox_pred = slim.conv2d(rpn4_2, self._num_anchors * 4, [1, 1], trainable=is_training,
@@ -203,9 +203,9 @@ class vgg16(Network):
 
       #----------------------------------pass rpn4 information to rpn5-------------------------------------------------##
       rpn4_cls_score_resize = slim.avg_pool2d(rpn4_cls_score, [2, 2], padding='SAME', scope='rpn4_cls_score_resize')
-      rpn4_cls_score_reshape_resize = self._reshape_layer(rpn4_cls_score, 2, 'rpn4_cls_score_reshape_resize')
+      rpn4_cls_score_reshape_resize = self._reshape_layer(rpn4_cls_score_resize, 2, 'rpn4_cls_score_reshape_resize')
       rpn4_cls_prob_reshape_resize = self._softmax_layer(rpn4_cls_score_reshape_resize, "rpn4_cls_prob_reshape_resize")
-      rpn4_cls_prob_resize = self._reshape_layer(rpn4_cls_prob_reshape, self._num_anchors * 2, "rpn4_cls_prob_resize")
+      rpn4_cls_prob_resize = self._reshape_layer(rpn4_cls_prob_reshape_resize, self._num_anchors * 2, "rpn4_cls_prob_resize")
 
       #tmp not need: box
       #rpn4_3_bbox_pred_resize = slim.avg_pool2d(rpn4_3_bbox_pred, [2, 2], padding='SAME', scope='rpn4_3_bbox_pred_resize')
