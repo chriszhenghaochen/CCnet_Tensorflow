@@ -23,6 +23,14 @@ from layer_utils.proposal_target_layer import proposal_target_layer
 from model.config import cfg
 from layer_utils.focal_loss import SigmoidFocalClassificationLoss as fl
 
+#FRCN BATCH
+frcn_batch1 = cfg.TRAIN.FRCN_BATCH1
+frcn_batch2 = cfg.TRAIN.FRCN_BATCH2
+
+#RPN BATCH
+rpn1_batch = cfg.TRAIN.RPN1_BATCH
+rpn2_batch = cfg.TRAIN.RPN2_BATCH
+
 class Network(object):
   def __init__(self, batch_size=1):
     self._feat_stride = [16, ]
@@ -39,6 +47,9 @@ class Network(object):
     self._event_summaries = {}
     self._variables_to_fix = {}
     self.fl = fl(alpha=0.5)
+
+    #debug
+    self._losses_debug = {}
 
   #Focal Loss
   def focal_loss(self, prediction_tensor, target_tensor, weights=None, alpha=0.25, gamma=2):
@@ -198,11 +209,11 @@ class Network(object):
   def _dropout_layer(self, bottom, name, ratio=0.5):
     return tf.nn.dropout(bottom, ratio, name=name)
 
-  def _anchor_target_layer(self, rpn_cls_score, name, pre_rpn_cls_prob, pre_rpn_bbox_pred, OHEM):
+  def _anchor_target_layer(self, rpn_cls_score, name, pre_rpn_cls_prob, pre_rpn_bbox_pred, OHEM, batch):
     with tf.variable_scope(name) as scope:
       rpn_labels, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights, rpn_rej_inds = tf.py_func(
         anchor_target_layer,
-        [rpn_cls_score, self._gt_boxes, self._im_info, self._feat_stride, self._anchors, self._num_anchors, pre_rpn_cls_prob, pre_rpn_bbox_pred, OHEM],
+        [rpn_cls_score, self._gt_boxes, self._im_info, self._feat_stride, self._anchors, self._num_anchors, pre_rpn_cls_prob, pre_rpn_bbox_pred, OHEM, batch],
         [tf.float32, tf.float32, tf.float32, tf.float32, tf.int64])
 
       rpn_labels.set_shape([1, 1, None, None])
@@ -286,16 +297,72 @@ class Network(object):
     return loss_box
 
 
+  ###this function is for repeating
+  def repeat(self, score, label, batch):
+
+    pos_len = len(np.where(label == 1)[0])
+    pos_score = score[np.where(label == 1)[0]]
+
+    if pos_len == 0:
+      return score, label
+
+    fg_num = int(batch*cfg.TRAIN.RPN_FG_FRACTION)
+
+    mul = int(fg_num/pos_len)
+    reminder = fg_num%pos_len
+
+    for i in range(mul-1):
+      score = np.concatenate((score, pos_score), axis=0)
+      label = np.concatenate((label, np.ones(pos_len, dtype = np.int32)), axis=0)
+
+
+    score = np.concatenate((score, pos_score[:reminder]), axis=0)
+    label = np.concatenate((label, np.ones(reminder, dtype = np.int32)), axis=0)
+
+    return score, label
+
+  ###done
+
+
+  def cls_repeat(self, score, label, batch):
+
+    pos_len = len(np.where(label != 0)[0])
+    pos_score = score[np.where(label != 0)[0]]
+    pos_label = label[np.where(label != 0)[0]]
+
+    if pos_len == 0:
+      return score, label
+
+    fg_num = int(batch*cfg.TRAIN.FG_FRACTION)
+
+    mul = int(fg_num/pos_len)
+    reminder = fg_num%pos_len
+
+    for i in range(mul-1):
+      score = np.concatenate((score, pos_score), axis=0)
+      label = np.concatenate((label, pos_label), axis=0)
+
+
+    score = np.concatenate((score, pos_score[:reminder]), axis=0)
+    label = np.concatenate((label, pos_label[:reminder]), axis=0)
+
+    return score, label
+
+  ###done
+
+
   def DEBUG(self, sess, blobs,):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
 
-    p5, p6  = sess.run([self._predictions["cls1_score"], 
-                        self._predictions["cls_score"],
-                        ],
+    b1,b2,b3,b4 = sess.run([self._losses_debug['label1'],
+                            self._losses_debug['neg_label1'],
+                            self._losses_debug['pos_label2'],
+                            self._losses_debug['neg_label2'],
+                            ],
                                   feed_dict=feed_dict)
 
-    return p5, p6
+    return b1,b2,b3,b4
 
 
   def _add_losses(self, sigma_rpn=3.0):
@@ -307,6 +374,14 @@ class Network(object):
       rpn1_select = tf.where(tf.not_equal(rpn1_label, -1))
       rpn1_cls_score = tf.reshape(tf.gather(rpn1_cls_score, rpn1_select), [-1, 2])
       rpn1_label = tf.reshape(tf.gather(rpn1_label, rpn1_select), [-1])
+
+      #repeat
+      rpn1_cls_score, rpn1_label = tf.py_func(self.repeat, [rpn1_cls_score, rpn1_label, rpn1_batch], [tf.float32, tf.int32])
+      #repeat
+
+      #debug
+      self._losses_debug['pos_label1'] = tf.reshape(tf.gather(rpn1_label, tf.where(tf.equal(rpn1_label, 1))), [-1])
+      self._losses_debug['neg_label1'] = tf.reshape(tf.gather(rpn1_label, tf.where(tf.equal(rpn1_label, 0))), [-1])
 
       #initialize rpn1 cls loss
       rpn1_cross_entropy = None
@@ -351,6 +426,15 @@ class Network(object):
       rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score, rpn_select), [-1, 2])
       rpn_label = tf.reshape(tf.gather(rpn_label, rpn_select), [-1])
 
+      # #there are some bugs here, I will try to fix that
+      # #repeat
+      # rpn_cls_score, rpn_label = tf.py_func(self.repeat, [rpn_cls_score, rpn_label, rpn2_batch], [tf.float32, tf.int32])
+      # #repeat   
+
+      #debug
+      self._losses_debug['pos_label2'] = tf.reshape(tf.gather(rpn_label, tf.where(tf.equal(rpn_label, 1))), [-1])
+      self._losses_debug['neg_label2'] = tf.reshape(tf.gather(rpn_label, tf.where(tf.equal(rpn_label, 0))), [-1])
+
       #initialize rpn cls loss
       rpn_cross_entropy = None
 
@@ -365,6 +449,8 @@ class Network(object):
         #use Original Loss
         rpn_cross_entropy = tf.reduce_mean(
           tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
+      
+
 
       # RPN, bbox loss
       rpn_bbox_pred = self._predictions['rpn_bbox_pred']
@@ -375,11 +461,18 @@ class Network(object):
       rpn_loss_box = self._smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights,
                                           rpn_bbox_outside_weights, sigma=sigma_rpn, dim=[1, 2, 3])
 
+
       
 
       # RCNN1, class loss
       cls1_score = self._predictions["cls1_score"]
       label1 = tf.reshape(self._proposal_targets["rpn1_rois_labels"], [-1])
+
+      #----resize score and label: there is a bug here---------#
+      # cls1_score, label1 = tf.py_func(self.cls_repeat, [cls1_score, label1, frcn_batch1], [tf.float32, tf.int32])
+
+      #self._losses_debug['label1'] = label1
+
 
       cross1_entropy = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -494,8 +587,8 @@ class Network(object):
       for key, var in self._event_summaries.items():
         val_summaries.append(tf.summary.scalar(key, var))
       for key, var in self._score_summaries.items():
-        print(key)
-        print(var)
+        # print(key)
+        # print(var)
         self._add_score_summary(key, var)
       for var in self._act_summaries:
         self._add_act_summary(var)
