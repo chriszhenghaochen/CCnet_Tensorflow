@@ -273,7 +273,7 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 
 #----------CCNet Config--------#
 #train
-__C.TRAIN.REJECT = 0.9
+__C.TRAIN.REJECT = 0.99
 
 #test
 __C.TEST.REJECT = 0.99

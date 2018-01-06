@@ -174,10 +174,11 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
 
   #OHEM
   if OHEM == True:
+    # subsample positive labels if we have too Smany
+    # num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)   
+    num_fg = int(batch*cfg.TRAIN.RPN_FG_FRACTION)
     # subsample positive labels if we have too many
     # num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
-    
-    num_fg = int(batch)
     fg_inds = np.where(labels == 1)[0]
     if len(fg_inds) > num_fg:
       disable_inds = npr.choice(
@@ -185,13 +186,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
       labels[disable_inds] = -1
 
     # subsample negative labels if we have too many
-    #num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
-
-    num_bg = len(fg_inds)*3
-    #in case nothing return
-    if num_bg < num_fg*3:
-      num_bg = num_fg*3
-
+    num_bg = batch - num_fg
     bg_inds = np.where(labels == 0)[0]
     if len(bg_inds) > num_bg:
       disable_inds = npr.choice(

@@ -66,7 +66,7 @@ def proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, im_info, _feat_stride, ancho
 
       pre_scores = pre_scores.ravel()
 
-      rpn_rejinds = np.where(pre_scores > reject_factor)
+      rpn_rejinds = np.where(pre_scores >= reject_factor)
 
       rpn_rejinds.sort()
 

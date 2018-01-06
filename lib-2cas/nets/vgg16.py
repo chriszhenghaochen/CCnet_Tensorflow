@@ -24,6 +24,11 @@ OHEM2 = cfg.TRAIN.OHEM2
 frcn_batch1 = cfg.TRAIN.FRCN_BATCH1
 frcn_batch2 = cfg.TRAIN.FRCN_BATCH2
 
+#RPN BATCH
+rpn1_batch = cfg.TRAIN.RPN1_BATCH
+rpn2_batch = cfg.TRAIN.RPN2_BATCH
+
+
 class vgg16(Network):
   def __init__(self, batch_size=1):
     Network.__init__(self, batch_size=batch_size)
@@ -75,7 +80,7 @@ class vgg16(Network):
                                   padding='VALID', activation_fn=None, scope='rpn1_bbox_pred')
       if is_training:
         # rois1, roi1_scores = self._proposal_layer(rpn1_cls_prob, rpn1_bbox_pred, "rois1")
-        rpn1_labels, rpn1_rej_inds = self._anchor_target_layer(rpn1_cls_score, "anchor1", [], [], OHEM1)
+        rpn1_labels, rpn1_rej_inds = self._anchor_target_layer(rpn1_cls_score, "anchor1", [], [], OHEM1, rpn1_batch)
         # # Try to have a determinestic order for the computing graph, for reproducibility
 
         rois1, roi1_scores, frcn1_order, frcn1_keep, frcn1_passinds,frcn1_score = self._proposal_layer(rpn1_cls_prob, rpn1_bbox_pred, "rois1", [], [], [], [], [], [], [], [])
@@ -154,7 +159,7 @@ class vgg16(Network):
 
       if is_training:
         #compute anchor loss       
-        rpn_labels, rpn_rej_inds = self._anchor_target_layer(rpn_cls_score, "anchor", rpn1_cls_prob_reshape, rpn1_bbox_pred, OHEM2)
+        rpn_labels, rpn_rej_inds = self._anchor_target_layer(rpn_cls_score, "anchor", rpn1_cls_prob_reshape, rpn1_bbox_pred, OHEM2, rpn2_batch)
 
         # #compute anchor loss - using add up score       
         #rpn_labels, rpn_pass_inds = self._anchor_target_layer(rpn12_cls_score, "anchor", rpn1_cls_prob_reshape, rpn1_bbox_pred, OHEM2)
@@ -246,6 +251,10 @@ class vgg16(Network):
       self._predictions["cls_prob"] = cls_prob
       self._predictions["bbox_pred"] = bbox_pred
       self._predictions["rois"] = rois
+
+
+      #####only for training######
+
 
       self._score_summaries.update(self._predictions)
 

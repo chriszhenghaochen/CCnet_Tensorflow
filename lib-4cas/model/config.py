@@ -275,13 +275,13 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 #----------CCNet Config--------#
 #train
 __C.TRAIN.REJECT4_3 = 0.99
-__C.TRAIN.REJECT5_2 = 0.95
-__C.TRAIN.REJECT5_3 = 0.9
+__C.TRAIN.REJECT5_2 = 0.99
+__C.TRAIN.REJECT5_3 = 0.99
 
 #test
 __C.TEST.REJECT4_3 = 0.99
-__C.TEST.REJECT5_2 = 0.95
-__C.TEST.REJECT5_3 = 0.9
+__C.TEST.REJECT5_2 = 0.99
+__C.TEST.REJECT5_3 = 0.99
 
 
 #score factor
@@ -294,14 +294,14 @@ __C.BOX_CHAIN = True
 #ohem 3: 1 restrinct
 __C.TRAIN.OHEM4_2 = True
 __C.TRAIN.OHEM4_3 = True
-__C.TRAIN.OHEM5_2 = False
+__C.TRAIN.OHEM5_2 = True
 __C.TRAIN.OHEM5_3 = True
 
 #rpn batch size
-__C.TRAIN.C42_BATCH = 192
-__C.TRAIN.C43_BATCH = 128
-__C.TRAIN.C52_BATCH = 0
-__C.TRAIN.C53_BATCH = 64
+__C.TRAIN.C42_BATCH = 1024
+__C.TRAIN.C43_BATCH = 768
+__C.TRAIN.C52_BATCH = 512
+__C.TRAIN.C53_BATCH = 256
 
 #focal loss
 __C.TRAIN.FOCAL_LOSS4_2 = False
