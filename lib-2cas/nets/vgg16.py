@@ -33,6 +33,8 @@ class vgg16(Network):
   def __init__(self, batch_size=1):
     Network.__init__(self, batch_size=batch_size)
 
+    self.endpoint = {}
+
   def build_network(self, sess, is_training=True):
     with tf.variable_scope('vgg_16', 'vgg_16'):
       # select initializers
@@ -61,12 +63,22 @@ class vgg16(Network):
       net = slim.repeat(net, 2, slim.conv2d, 512, [3, 3],
                         trainable=is_training, scope='conv5')
 
+      #store conv5_2
+      self.endpoint['conv5_2'] = net
+
+      #continue conv5/conv5_3
+      net = slim.conv2d(net, 512, [3, 3], trainable=is_training, scope = "conv5/conv5_3")
+
+
+      #store conv5_3
+      self.endpoint['conv5_3'] = net
+
       # build the anchors for the image
       self._anchor_component()
 
       ##-----------------------------------------------rpn 1------------------------------------------------------------##
       # rpn 1
-      rpn1 = slim.conv2d(net, 512, [3, 3], trainable=is_training, weights_initializer=initializer, scope="rpn1_conv/3x3")
+      rpn1 = slim.conv2d(self.endpoint['conv5_2'], 512, [3, 3], trainable=is_training, weights_initializer=initializer, scope="rpn1_conv/3x3")
       self._act_summaries.append(rpn1)
       rpn1_cls_score = slim.conv2d(rpn1, self._num_anchors * 2, [1, 1], trainable=is_training,
                                   weights_initializer=initializer,
@@ -97,7 +109,7 @@ class vgg16(Network):
 
       # rcnn
       if cfg.POOLING_MODE == 'crop':
-        pool51 = self._crop_pool_layer(net, rois1, "pool51")
+        pool51 = self._crop_pool_layer(self.endpoint['conv5_2'], rois1, "pool51")
       else:
         raise NotImplementedError
 
@@ -120,19 +132,13 @@ class vgg16(Network):
                                        trainable=is_training,
                                        activation_fn=None, scope='bbox1_pred')
 
-
+      self._act_summaries.append(self.endpoint['conv5_2'])
       ##---------------------------------------------rpn 1 done------------------------------------------------------------##
 
-      #continue conv5/conv5_3
-      net = slim.conv2d(net, 512, [3, 3], trainable=is_training, scope = "conv5/conv5_3")
-
-      #keep vgg network
-      self._act_summaries.append(net)
-      self._layers['head'] = net
-
-
+      
+      
       ##-----------------------------------------------rpn-----------------------------------------------------------------##
-      rpn = slim.conv2d(net, 512, [3, 3], trainable=is_training, weights_initializer=initializer, scope="rpn_conv/3x3")
+      rpn = slim.conv2d(self.endpoint['conv5_3'], 512, [3, 3], trainable=is_training, weights_initializer=initializer, scope="rpn_conv/3x3")
       self._act_summaries.append(rpn)
       rpn_cls_score = slim.conv2d(rpn, self._num_anchors * 2, [1, 1], trainable=is_training,
                                   weights_initializer=initializer,
@@ -189,7 +195,7 @@ class vgg16(Network):
 
       # rcnn
       if cfg.POOLING_MODE == 'crop':
-        pool5 = self._crop_pool_layer(net, rois, "pool5")
+        pool5 = self._crop_pool_layer(self.endpoint['conv5_3'], rois, "pool5")
       else:
         raise NotImplementedError
 
@@ -216,6 +222,11 @@ class vgg16(Network):
                                        trainable=is_training,
                                        activation_fn=None, scope='bbox_pred')
       
+
+      #keep vgg network
+      self._act_summaries.append(self.endpoint['conv5_3'])
+      self._layers['head'] = self.endpoint['conv5_3']
+
 
       #debug
       #tmp = net['conv2/conv2_2']

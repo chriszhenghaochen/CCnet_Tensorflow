@@ -348,7 +348,7 @@ class Network(object):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
 
-    b1,b2,b3,b4 = sess.run([self._losses_debug['label1'],
+    b1,b2,b3,b4 = sess.run([self.endpoint['conv5_3'],
                             self._losses_debug['neg_label1'],
                             self._losses_debug['pos_label2'],
                             self._losses_debug['neg_label2'],
