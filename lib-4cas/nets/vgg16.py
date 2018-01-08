@@ -37,6 +37,8 @@ batch43 = cfg.TRAIN.C43_BATCH
 batch52 = cfg.TRAIN.C52_BATCH
 batch53 = cfg.TRAIN.C53_BATCH
 
+frcn_batch = cfg.TRAIN.FRCN_BATCH
+
 
 class vgg16(Network):
   def __init__(self, batch_size=1):
@@ -302,7 +304,7 @@ class vgg16(Network):
 
         # Try to have a determinestic order for the computing graph, for reproducibility
         with tf.control_dependencies([rpn_labels]):
-          rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois")
+          rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois", frcn_batch)
       else:
         if cfg.TEST.MODE == 'nms':
           # rois, _ = self._proposal_layer(6, rpn_cls_prob, rpn_bbox_pred, "rois", [], rpn_cls_prob_reshape, rpn5_bbox_pred)

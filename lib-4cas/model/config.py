@@ -70,7 +70,7 @@ __C.TRAIN.MAX_SIZE = 1000
 __C.TRAIN.IMS_PER_BATCH = 1
 
 # Minibatch size (number of regions of interest [ROIs])
-__C.TRAIN.BATCH_SIZE = 128
+__C.TRAIN.BATCH_SIZE = 64
 
 # Fraction of minibatch that is labeled foreground (i.e. class > 0)
 __C.TRAIN.FG_FRACTION = 0.25
@@ -308,6 +308,9 @@ __C.TRAIN.FOCAL_LOSS4_2 = False
 __C.TRAIN.FOCAL_LOSS4_3 = False
 __C.TRAIN.FOCAL_LOSS5_2 = False
 __C.TRAIN.FOCAL_LOSS5_3 = False
+
+#FRCN
+__C.TRAIN.FRCN_BATCH = 128
 #--------------done------------#
 
 

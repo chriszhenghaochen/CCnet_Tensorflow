@@ -133,8 +133,8 @@ class Network(object):
       return to_tf
 
   # add 2 scores from rpn
-  def _score_add_up(self, score1, score2, factor, name):
-    score = tf.add(x = score1*factor, y = score2, name = name)
+  def _score_add_up(self, score1, score2, factor1, factor2, name):
+    score = tf.add(x = score1*factor1, y = score2*factor2, name = name)
     return score
 
 
@@ -306,40 +306,44 @@ class Network(object):
       # print('bfore', label)
 
     pos_len = tf.cast(tf.count_nonzero(label), tf.int32)
+    neg_len = tf.cast(batch, tf.int32) - pos_len
     select = tf.where(tf.not_equal(label, 0))
+    neg_select = tf.where(tf.equal(label, 0))
 
     if cls == False:
-      size, fraction = 2,cfg.TRAIN.RPN_FG_FRACTION
+      size, fraction = 2, cfg.TRAIN.RPN_FG_FRACTION
     else:
-      size, fraction = 21, cfg.TRAIN.RPN_FG_FRACTION
+      size, fraction = 21, cfg.TRAIN.FG_FRACTION
 
     pos_score = tf.reshape(tf.gather(score, select), [-1, size])
     pos_label = tf.reshape(tf.gather(label, select), [-1])
 
+    neg_score = tf.reshape(tf.gather(score, neg_select), [-1, size])
+    neg_label = tf.reshape(tf.gather(label, neg_select), [-1])
+
+    #process negtive score first
+    bg_num = tf.cast(batch - batch*fraction, tf.int32)
+
+    neg_score = tf.cond(tf.less(bg_num, neg_len), lambda: neg_score[:bg_num], lambda: neg_score)
+    neg_label = tf.cond(tf.less(bg_num, neg_len), lambda: neg_label[:bg_num], lambda: neg_label)
+
 
     fg_num = tf.cast(batch*fraction, tf.int32)
 
-    mul = tf.cast(tf.cond(tf.equal(pos_len, 0), lambda: tf.constant(1, tf.float64), lambda: (fg_num/pos_len)), tf.int32)
+    mul = tf.cast(tf.cond(tf.equal(pos_len, 0), lambda: tf.constant(0, tf.float64), lambda: (fg_num/pos_len)), tf.int32)
     reminder = tf.cast(tf.cond(tf.equal(pos_len, 0), lambda: tf.constant(0, tf.int32), lambda: fg_num%pos_len), tf.int32)
 
-    # for i in range(mul-1):
-    #   score = np.concatenate((score, pos_score), axis=0)
-    #   label = np.concatenate((label, np.ones(pos_len, dtype = np.int32)), axis=0)
 
-    score_tile = tf.tile(pos_score, tf.convert_to_tensor([mul-1, 1],tf.int32))
-    label_tile = tf.tile(pos_label, tf.convert_to_tensor([mul-1],tf.int32))
-
-    # reminder = tf.cast(reminder, tf.int32)
-    # mul = tf.cast(mul, tf.int32)
+    #process postive score
+    score_tile = tf.tile(pos_score, tf.convert_to_tensor([mul, 1],tf.int32))
+    label_tile = tf.tile(pos_label, tf.convert_to_tensor([mul],tf.int32))
 
     score_reminder = pos_score[:reminder]
     label_reminder = pos_label[:reminder]
 
-      # print('after ', score)
-      # print('after ', label)
 
-    score = tf.concat([score, score_tile, score_reminder],0)
-    label = tf.concat([label, label_tile, label_reminder],0)
+    score = tf.concat([neg_score, score_tile, score_reminder],0)
+    label = tf.concat([neg_label, label_tile, label_reminder],0)
 
     return score, label
 
@@ -348,7 +352,7 @@ class Network(object):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
 
-    b1,b2,b3,b4 = sess.run([self.endpoint['conv5_3'],
+    b1,b2,b3,b4 = sess.run([self._losses_debug['pos_label1'],
                             self._losses_debug['neg_label1'],
                             self._losses_debug['pos_label2'],
                             self._losses_debug['neg_label2'],

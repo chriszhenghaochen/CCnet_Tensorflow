@@ -30,7 +30,7 @@ batch43 = cfg.TRAIN.C43_BATCH
 batch52 = cfg.TRAIN.C52_BATCH
 batch53 = cfg.TRAIN.C53_BATCH
 
-batch_size = cfg.TRAIN.BATCH_SIZE
+frcn_batch_size = cfg.TRAIN.FRCN_BATCH
 
 
 
@@ -229,19 +229,19 @@ class Network(object):
 
     return rpn_labels, rpn_pass_inds, rpn_rej_inds
 
-  def _proposal_target_layer(self, rois, roi_scores, name):
+  def _proposal_target_layer(self, rois, roi_scores, name, batch):
     with tf.variable_scope(name) as scope:
       rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = tf.py_func(
         proposal_target_layer,
-        [rois, roi_scores, self._gt_boxes, self._num_classes],
+        [rois, roi_scores, self._gt_boxes, self._num_classes, batch],
         [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32])
 
-      rois.set_shape([cfg.TRAIN.BATCH_SIZE, 5])
-      roi_scores.set_shape([cfg.TRAIN.BATCH_SIZE])
-      labels.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
-      bbox_targets.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
-      bbox_inside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
-      bbox_outside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
+      rois.set_shape([batch, 5])
+      roi_scores.set_shape([batch])
+      labels.set_shape([batch, 1])
+      bbox_targets.set_shape([batch, self._num_classes * 4])
+      bbox_inside_weights.set_shape([batch, self._num_classes * 4])
+      bbox_outside_weights.set_shape([batch, self._num_classes * 4])
 
       self._proposal_targets['rois'] = rois
       self._proposal_targets['labels'] = tf.to_int32(labels, name="to_int32")
@@ -291,17 +291,21 @@ class Network(object):
                  self._gt_boxes: blobs['gt_boxes']}
 
 
-    b1,b2,b3,b4,b5,b6,b7,b8 = sess.run([self._losses['pos_label1'],
-                            self._losses['neg_label1'],
-                            self._losses['pos_label2'],
-                            self._losses['neg_label2'],
-                            self._losses['pos_label3'],
-                            self._losses['neg_label3'],
-                            self._losses['pos_label4'],
-                            self._losses['neg_label4'],
+    b1,b2,b3,b4,b5,b6,b7,b8, b9,b10,b11,b12 = sess.run([self._losses_debug['pos_label1'],
+                            self._losses_debug['neg_label1'],
+                            self._losses_debug['pos_label2'],
+                            self._losses_debug['neg_label2'],
+                            self._losses_debug['pos_label3'],
+                            self._losses_debug['neg_label3'],
+                            self._losses_debug['pos_label4'],
+                            self._losses_debug['neg_label4'],
+                            self._losses_debug['pos_label5'],
+                            self._losses_debug['neg_label5'],
+                            self._losses_debug['pos_label6'],
+                            self._losses_debug['neg_label6'],
                             ],
                                   feed_dict=feed_dict)
-    return b1,b2,b3,b4,b5,b6,b7,b8
+    return b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11,b12
 
 
    ###this function is for repeating
@@ -311,40 +315,44 @@ class Network(object):
       # print('bfore', label)
 
     pos_len = tf.cast(tf.count_nonzero(label), tf.int32)
+    neg_len = tf.cast(batch, tf.int32) - pos_len
     select = tf.where(tf.not_equal(label, 0))
+    neg_select = tf.where(tf.equal(label, 0))
 
     if cls == False:
-      size, fraction = 2,cfg.TRAIN.RPN_FG_FRACTION
+      size, fraction = 2, cfg.TRAIN.RPN_FG_FRACTION
     else:
-      size, fraction = 21, cfg.TRAIN.RPN_FG_FRACTION
+      size, fraction = 21, cfg.TRAIN.FG_FRACTION
 
     pos_score = tf.reshape(tf.gather(score, select), [-1, size])
     pos_label = tf.reshape(tf.gather(label, select), [-1])
 
+    neg_score = tf.reshape(tf.gather(score, neg_select), [-1, size])
+    neg_label = tf.reshape(tf.gather(label, neg_select), [-1])
+
+    #process negtive score first
+    bg_num = tf.cast(batch - batch*fraction, tf.int32)
+
+    neg_score = tf.cond(tf.less(bg_num, neg_len), lambda: neg_score[:bg_num], lambda: neg_score)
+    neg_label = tf.cond(tf.less(bg_num, neg_len), lambda: neg_label[:bg_num], lambda: neg_label)
+
 
     fg_num = tf.cast(batch*fraction, tf.int32)
 
-    mul = tf.cast(tf.cond(tf.equal(pos_len, 0), lambda: tf.constant(1, tf.float64), lambda: (fg_num/pos_len)), tf.int32)
+    mul = tf.cast(tf.cond(tf.equal(pos_len, 0), lambda: tf.constant(0, tf.float64), lambda: (fg_num/pos_len)), tf.int32)
     reminder = tf.cast(tf.cond(tf.equal(pos_len, 0), lambda: tf.constant(0, tf.int32), lambda: fg_num%pos_len), tf.int32)
 
-    # for i in range(mul-1):
-    #   score = np.concatenate((score, pos_score), axis=0)
-    #   label = np.concatenate((label, np.ones(pos_len, dtype = np.int32)), axis=0)
 
-    score_tile = tf.tile(pos_score, tf.convert_to_tensor([mul-1, 1],tf.int32))
-    label_tile = tf.tile(pos_label, tf.convert_to_tensor([mul-1],tf.int32))
-
-    # reminder = tf.cast(reminder, tf.int32)
-    # mul = tf.cast(mul, tf.int32)
+    #process postive score
+    score_tile = tf.tile(pos_score, tf.convert_to_tensor([mul, 1],tf.int32))
+    label_tile = tf.tile(pos_label, tf.convert_to_tensor([mul],tf.int32))
 
     score_reminder = pos_score[:reminder]
     label_reminder = pos_label[:reminder]
 
-      # print('after ', score)
-      # print('after ', label)
 
-    score = tf.concat([score, score_tile, score_reminder],0)
-    label = tf.concat([label, label_tile, label_reminder],0)
+    score = tf.concat([neg_score, score_tile, score_reminder],0)
+    label = tf.concat([neg_label, label_tile, label_reminder],0)
 
     return score, label
 
@@ -542,7 +550,14 @@ class Network(object):
       cls_score = self._predictions["cls_score"]
       label = tf.reshape(self._proposal_targets["labels"], [-1])
 
-      cls_score, label = self.repeat(cls_score, label, batch_size, True)
+      self._losses_debug['pos_label5'] = tf.reshape(tf.gather(label, tf.where(tf.not_equal(label, 0))), [-1])
+      self._losses_debug['neg_label5'] = tf.reshape(tf.gather(label, tf.where(tf.equal(label, 0))), [-1])
+
+
+      cls_score, label = self.repeat(cls_score, label, frcn_batch_size, True)
+
+      self._losses_debug['pos_label6'] = tf.reshape(tf.gather(label, tf.where(tf.not_equal(label, 0))), [-1])
+      self._losses_debug['neg_label6'] = tf.reshape(tf.gather(label, tf.where(tf.equal(label, 0))), [-1])
 
       cross_entropy = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
