@@ -16,7 +16,8 @@ import numpy as np
 from nets.network import Network
 from model.config import cfg
 
-factor = cfg.SCORE_FACTOR
+factor1 = cfg.SCORE_FACTOR1
+factor2 = cfg.SCORE_FACTOR2
 OHEM1 = cfg.TRAIN.OHEM1
 OHEM2 = cfg.TRAIN.OHEM2
 
@@ -27,6 +28,9 @@ frcn_batch2 = cfg.TRAIN.FRCN_BATCH2
 #RPN BATCH
 rpn1_batch = cfg.TRAIN.RPN1_BATCH
 rpn2_batch = cfg.TRAIN.RPN2_BATCH
+
+#concat
+concat = cfg.TRAIN.CONCAT
 
 
 class vgg16(Network):
@@ -71,7 +75,10 @@ class vgg16(Network):
 
 
       #store conv5_3
-      self.endpoint['conv5_3'] = net
+      if concat:
+        self.endpoint['conv5_3'] = tf.concat([net, self.endpoint['conv5_2']], 3)
+      else:
+        self.endpoint['conv5_3'] = net
 
       # build the anchors for the image
       self._anchor_component()
@@ -155,7 +162,7 @@ class vgg16(Network):
                                   padding='VALID', activation_fn=None, scope='rpn_bbox_pred')
 
       #add up 2 scores rpn1 and rpn
-      rpn12_cls_score = self._score_add_up(rpn1_cls_score, rpn_cls_score, factor, 'rpn12_cls_score')
+      rpn12_cls_score = self._score_add_up(rpn1_cls_score, rpn_cls_score, factor1, factor2, 'rpn12_cls_score')
 
       #used added up score
       rpn12_cls_score_reshape = self._reshape_layer(rpn12_cls_score, 2, 'rpn12_cls_score_reshape')
@@ -201,10 +208,18 @@ class vgg16(Network):
 
       pool5_flat = slim.flatten(pool5, scope='flatten') 
 
-      fc6 = slim.fully_connected(pool5_flat, 4096, scope='fc6', reuse=True)
-      if is_training:
-        fc6 = slim.dropout(fc6, keep_prob=0.5, is_training=True, scope='dropout6')
-      fc7 = slim.fully_connected(fc6, 4096, scope='fc7', reuse=True)
+      if concat:
+        fc6_1 = slim.fully_connected(pool5_flat, 4096, scope='fc6_1', weights_initializer=initializer)
+        if is_training:
+          fc6_1 = slim.dropout(fc6_1, keep_prob=0.5, is_training=True, scope='dropout6_1')
+        fc7 = slim.fully_connected(fc6_1, 4096, scope='fc7', reuse=True)
+
+      else:
+        fc6 = slim.fully_connected(pool5_flat, 4096, scope='fc6', reuse=True)
+        if is_training:
+          fc6 = slim.dropout(fc6, keep_prob=0.5, is_training=True, scope='dropout6')
+        fc7 = slim.fully_connected(fc6, 4096, scope='fc7', reuse=True)
+
       if is_training:
         fc7 = slim.dropout(fc7, keep_prob=0.5, is_training=True, scope='dropout7')
       cls_score = slim.fully_connected(fc7, self._num_classes, 
@@ -214,7 +229,7 @@ class vgg16(Network):
 
 
        #add up 2 scores rpn1 and rpn
-      cls_score = self._score_add_up(frcn2_score, cls_score, factor, 'cls12_score')
+      cls_score = self._score_add_up(frcn2_score, cls_score, factor1, factor2, 'cls12_score')
 
       cls_prob = self._softmax_layer(cls_score, "cls_prob")
       bbox_pred = slim.fully_connected(fc7, self._num_classes * 4, 
