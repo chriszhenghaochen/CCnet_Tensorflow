@@ -282,7 +282,8 @@ __C.TEST.REJECT = 0.99
 __C.FRCN_REJCECT = 0.99
 
 #score factor
-__C.SCORE_FACTOR = 0.5
+__C.SCORE_FACTOR1 = 0.34
+__C.SCORE_FACTOR2 = 0.63
 
 #boxTrain
 __C.BOX_CHAIN = True
@@ -302,6 +303,9 @@ __C.TRAIN.FRCN_BATCH2 = 128
 #focal loss
 __C.TRAIN.FOCAL_LOSS1 = False
 __C.TRAIN.FOCAL_LOSS2 = False
+
+#concat
+__C.TRAIN.CONCAT = False
 #--------------done------------#
 
 
