@@ -15,7 +15,7 @@ from model.bbox_transform import bbox_transform
 from utils.cython_bbox import bbox_overlaps
 
 
-def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
+def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes, batch):
   """
   Assign object detection proposals to ground-truth targets. Produces proposal
   classification labels and bounding-box regression targets.
@@ -36,7 +36,8 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
     all_scores = np.vstack((all_scores, zeros))
 
   num_images = 1
-  rois_per_image = cfg.TRAIN.BATCH_SIZE / num_images
+  rois_per_image = batch / num_images
+  
   fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
   # Sample rois with classification labels and bounding box regression
@@ -100,6 +101,9 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   """Generate a random sample of RoIs comprising foreground and background
   examples.
   """
+
+  #print(rois_per_image)
+
   # overlaps: (rois x gt_boxes)
   overlaps = bbox_overlaps(
     np.ascontiguousarray(all_rois[:, 1:5], dtype=np.float),
