@@ -18,6 +18,7 @@ from model.config import cfg
 
 factor1 = cfg.SCORE_FACTOR1
 factor2 = cfg.SCORE_FACTOR2
+
 OHEM1 = cfg.TRAIN.OHEM1
 OHEM2 = cfg.TRAIN.OHEM2
 
@@ -28,9 +29,6 @@ frcn_batch2 = cfg.TRAIN.FRCN_BATCH2
 #RPN BATCH
 rpn1_batch = cfg.TRAIN.RPN1_BATCH
 rpn2_batch = cfg.TRAIN.RPN2_BATCH
-
-#concat
-concat = cfg.TRAIN.CONCAT
 
 
 class vgg16(Network):
@@ -75,10 +73,7 @@ class vgg16(Network):
 
 
       #store conv5_3
-      if concat:
-        self.endpoint['conv5_3'] = tf.concat([net, self.endpoint['conv5_2']], 3)
-      else:
-        self.endpoint['conv5_3'] = net
+      self.endpoint['conv5_3'] = net
 
       # build the anchors for the image
       self._anchor_component()
@@ -122,22 +117,18 @@ class vgg16(Network):
 
       pool51_flat = slim.flatten(pool51, scope='flatten1') 
 
-      fc6 = slim.fully_connected(pool51_flat, 4096, scope='fc6')
-      if is_training:
-        fc6 = slim.dropout(fc6, keep_prob=0.5, is_training=True, scope='dropout6')
-      fc7 = slim.fully_connected(fc6, 4096, scope='fc7')
-      if is_training:
-        fc7 = slim.dropout(fc7, keep_prob=0.5, is_training=True, scope='dropout7')
+      fc5_2 = slim.fully_connected(pool51_flat, 512, scope='fc5_2', weights_initializer=initializer)
 
-      cls1_score = slim.fully_connected(fc7, self._num_classes, 
+      #combine
+      scale5_2 = tf.Variable(tf.cast(1, tf.float32), trainable = True, name = 'scale5_2')
+      self._predictions['scale5_2'] = scale5_2
+      fc_combine5_2 = tf.scalar_mul(scale5_2, fc5_2)
+
+      cls1_score = slim.fully_connected(fc_combine5_2, self._num_classes, 
                                        weights_initializer=initializer,
                                        trainable=is_training,
                                        activation_fn=None, scope='cls1_score')
       cls1_prob = self._softmax_layer(cls1_score, "cls1_prob")
-      bbox1_pred = slim.fully_connected(fc7, self._num_classes * 4, 
-                                       weights_initializer=initializer_bbox,
-                                       trainable=is_training,
-                                       activation_fn=None, scope='bbox1_pred')
 
       self._act_summaries.append(self.endpoint['conv5_2'])
       ##---------------------------------------------rpn 1 done------------------------------------------------------------##
@@ -203,23 +194,17 @@ class vgg16(Network):
       # rcnn
       if cfg.POOLING_MODE == 'crop':
         pool5 = self._crop_pool_layer(self.endpoint['conv5_3'], rois, "pool5")
+        self.endpoint['pool5'] = pool5
       else:
         raise NotImplementedError
 
       pool5_flat = slim.flatten(pool5, scope='flatten') 
+      self.endpoint['p5f'] = pool5_flat
 
-      if concat:
-        fc6_1 = slim.fully_connected(pool5_flat, 4096, scope='fc6_1', weights_initializer=initializer)
-        if is_training:
-          fc6_1 = slim.dropout(fc6_1, keep_prob=0.5, is_training=True, scope='dropout6_1')
-        fc7 = slim.fully_connected(fc6_1, 4096, scope='fc7', reuse=True)
-
-      else:
-        fc6 = slim.fully_connected(pool5_flat, 4096, scope='fc6', reuse=True)
-        if is_training:
-          fc6 = slim.dropout(fc6, keep_prob=0.5, is_training=True, scope='dropout6')
-        fc7 = slim.fully_connected(fc6, 4096, scope='fc7', reuse=True)
-
+      fc6 = slim.fully_connected(pool5_flat, 4096, scope='fc6')
+      if is_training:
+        fc6 = slim.dropout(fc6, keep_prob=0.5, is_training=True, scope='dropout6')
+      fc7 = slim.fully_connected(fc6, 4096, scope='fc7')
       if is_training:
         fc7 = slim.dropout(fc7, keep_prob=0.5, is_training=True, scope='dropout7')
       cls_score = slim.fully_connected(fc7, self._num_classes, 
@@ -270,7 +255,6 @@ class vgg16(Network):
       #new fc
       self._predictions["cls1_score"] = cls1_score
       self._predictions["cls1_prob"] = cls1_prob
-      self._predictions["bbox1_pred"] = bbox1_pred
       self._predictions["rois1"] = rois1
       #
       self._predictions["cls_score"] = cls_score

@@ -225,12 +225,13 @@ class SolverWrapper(object):
       now = time.time()
 
       # # #DEBUG
-      # p5, p6 = self.net.DEBUG(sess, blobs)
-      # print('cls1', np.asarray(p5).shape)
-      # print('cls2', np.asarray(p6).shape)
-      # # print('cls ', cls.shape)
+      # a,b   = self.net.DEBUG(sess, blobs)
+      # print('scale5_2', a)
+      # print('conv5_3', b.shape)
+      # print('pos 2',c.shape)
+      # print('label 2',d.shape)
 
-
+     
       if now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
 
         # Compute the graph with summary
@@ -238,7 +239,7 @@ class SolverWrapper(object):
         #   self.net.train_step_with_summary(sess, blobs, train_op)
 
         #new train step
-        rpn1_loss_cls, rpn1_loss_box, loss1_cls, loss1_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
+        rpn1_loss_cls, rpn1_loss_box, loss1_cls, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
             self.net.train_step_with_summary(sess, blobs, train_op)
         #done
 
@@ -254,7 +255,7 @@ class SolverWrapper(object):
         #   self.net.train_step(sess, blobs, train_op)
 
         #new train step
-        rpn1_loss_cls, rpn1_loss_box, loss1_cls, loss1_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
+        rpn1_loss_cls, rpn1_loss_box, loss1_cls, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
           self.net.train_step(sess, blobs, train_op)
 
       timer.toc()
@@ -266,9 +267,9 @@ class SolverWrapper(object):
         #       (iter, max_iters, total_loss, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
 
         #new showing up
-        print('iter: %d / %d, total loss: %.6f\n >>> rpn1_loss_cls: %.6f\n >>> rpn1_loss_box: %.6f\n  >>> loss1_cls: %.6f\n >>> loss1_box: %.6f\n >>> rpn_loss_cls: %.6f\n '
+        print('iter: %d / %d, total loss: %.6f\n >>> rpn1_loss_cls: %.6f\n >>> rpn1_loss_box: %.6f\n  >>> loss1_cls: %.6f\n >>> rpn_loss_cls: %.6f\n '
               '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
-              (iter, max_iters, total_loss, rpn1_loss_cls, rpn1_loss_box, loss1_cls, loss1_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
+              (iter, max_iters, total_loss, rpn1_loss_cls, rpn1_loss_box, loss1_cls, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
         #new showing up
 
         print('speed: {:.3f}s / iter'.format(timer.average_time))
@@ -358,7 +359,7 @@ def train_net(network, imdb, roidb, valroidb, output_dir, tb_dir,
   valroidb = filter_roidb(valroidb)
 
   tfconfig = tf.ConfigProto(allow_soft_placement=True)
-  #tfconfig.gpu_options.allow_growth = True
+  tfconfig.gpu_options.allow_growth = True
 
   with tf.Session(config=tfconfig) as sess:
     sw = SolverWrapper(sess, network, imdb, roidb, valroidb, output_dir, tb_dir,

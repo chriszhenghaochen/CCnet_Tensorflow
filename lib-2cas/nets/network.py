@@ -23,6 +23,9 @@ from layer_utils.proposal_target_layer import proposal_target_layer
 from model.config import cfg
 from layer_utils.focal_loss import SigmoidFocalClassificationLoss as fl
 
+#repeat
+repeat = cfg.TRAIN.REPEAT
+
 #FRCN BATCH
 frcn_batch1 = cfg.TRAIN.FRCN_BATCH1
 frcn_batch2 = cfg.TRAIN.FRCN_BATCH2
@@ -204,7 +207,7 @@ class Network(object):
       # Won't be backpropagated to rois anyway, but to save time
       bboxes = tf.stop_gradient(tf.concat([y1, x1, y2, x2], axis=1))
       pre_pool_size = cfg.POOLING_SIZE * 2
-      crops = tf.image.crop_and_resize(bottom, bboxes, tf.to_int32(batch_ids), [pre_pool_size, pre_pool_size], name="crops")
+      crops = tf.image.crop_and_resize(bottom, bboxes, tf.to_int32(batch_ids), [pre_pool_size, pre_pool_size], name=name + "crops")
 
     return slim.max_pool2d(crops, [2, 2], padding='SAME')
 
@@ -313,7 +316,7 @@ class Network(object):
     if cls == False:
       size, fraction = 2, cfg.TRAIN.RPN_FG_FRACTION
     else:
-      size, fraction = 21, cfg.TRAIN.FG_FRACTION
+      size, fraction = self._num_classes, cfg.TRAIN.FG_FRACTION
 
     pos_score = tf.reshape(tf.gather(score, select), [-1, size])
     pos_label = tf.reshape(tf.gather(label, select), [-1])
@@ -352,14 +355,19 @@ class Network(object):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
 
-    b1,b2,b3,b4 = sess.run([self._losses_debug['pos_label1'],
-                            self._losses_debug['neg_label1'],
-                            self._losses_debug['pos_label2'],
-                            self._losses_debug['neg_label2'],
-                            ],
-                                  feed_dict=feed_dict)
+    # b1,b2,b3,b4 = sess.run([self._losses_debug['pos_label1'],
+    #                         self._losses_debug['neg_label1'],
+    #                         self._losses_debug['pos_label2'],
+    #                         self._losses_debug['neg_label2'],
+    #                         ],
+    #                               feed_dict=feed_dict)
 
-    return b1,b2,b3,b4
+    b1,b2,  = sess.run([self._predictions['scale5_2'],
+                        self.endpoint['conv5_2'],
+                       ],
+                      feed_dict=feed_dict)
+
+    return b1,b2
 
 
   def _add_losses(self, sigma_rpn=3.0):
@@ -372,7 +380,9 @@ class Network(object):
       rpn1_cls_score = tf.reshape(tf.gather(rpn1_cls_score, rpn1_select), [-1, 2])
       rpn1_label = tf.reshape(tf.gather(rpn1_label, rpn1_select), [-1])
 
-      rpn1_cls_score, rpn1_label = self.repeat(rpn1_cls_score, rpn1_label, rpn1_batch)
+      #repeat
+      if repeat:
+        rpn1_cls_score, rpn1_label = self.repeat(rpn1_cls_score, rpn1_label, rpn1_batch)
     
       #debug
       self._losses_debug['pos_label1'] = tf.reshape(tf.gather(rpn1_label, tf.where(tf.equal(rpn1_label, 1))), [-1])
@@ -423,8 +433,9 @@ class Network(object):
 
       #there are some bugs here, I will try to fix that
       #repeat   
-      rpn_cls_score, rpn_label = self.repeat(rpn_cls_score, rpn_label, rpn2_batch)
-      #repeat 
+
+      if repeat:
+        rpn_cls_score, rpn_label = self.repeat(rpn_cls_score, rpn_label, rpn2_batch) 
 
       # print('rpn score ',rpn_cls_score)
       # print('rpn_label ',rpn_label)
@@ -466,22 +477,12 @@ class Network(object):
       label1 = tf.reshape(self._proposal_targets["rpn1_rois_labels"], [-1])
 
       #----resize score and label---------#
-      cls1_score, label1 = self.repeat(cls1_score, label1, frcn_batch1, True)
-
-      #self._losses_debug['label1'] = label1
-
+      if repeat:
+        cls1_score, label1 = self.repeat(cls1_score, label1, frcn_batch1, True)
 
       cross1_entropy = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
           logits=tf.reshape(cls1_score, [-1, self._num_classes]), labels=label1))
-
-      # RCNN1, bbox loss
-      bbox1_pred = self._predictions['bbox1_pred']
-      bbox1_targets = self._proposal_targets['rpn1_rois_bbox_targets']
-      bbox1_inside_weights = self._proposal_targets['rpn1_rois_bbox_inside_weights']
-      bbox1_outside_weights = self._proposal_targets['rpn1_rois_bbox_outside_weights']
-
-      loss1_box = self._smooth_l1_loss(bbox1_pred, bbox1_targets, bbox1_inside_weights, bbox1_outside_weights)
 
 
 
@@ -490,7 +491,9 @@ class Network(object):
       label = tf.reshape(self._proposal_targets["rpn_rois_labels"], [-1])
 
       #----resize score and label---------#
-      cls_score, label = self.repeat(cls_score, label, frcn_batch2, True)
+
+      if repeat:
+        cls_score, label = self.repeat(cls_score, label, frcn_batch2, True)
 
       cross_entropy = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -509,7 +512,6 @@ class Network(object):
       self._losses['rpn1_cross_entropy'] = rpn1_cross_entropy
       self._losses['rpn1_loss_box'] = rpn1_loss_box
       self._losses['cross1_entropy'] = cross1_entropy
-      self._losses['loss1_box'] = loss1_box
       #done
 
       self._losses['cross_entropy'] = cross_entropy
@@ -521,7 +523,7 @@ class Network(object):
       # loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
 
       #new loss with rpn1
-      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + rpn1_cross_entropy*0.5 + rpn1_loss_box*0.5 + cross1_entropy*0.5 + loss1_box*0.5
+      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + rpn1_cross_entropy*0.05 + rpn1_loss_box*0.05 + cross1_entropy*0.05
 
       self._losses['total_loss'] = loss
 
@@ -644,10 +646,9 @@ class Network(object):
     #                                                                    feed_dict=feed_dict)
     # return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss
 
-    rpn1_loss_cls, rpn1_loss_box, loss1_cls, loss1_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([self._losses["rpn1_cross_entropy"],
+    rpn1_loss_cls, rpn1_loss_box, loss1_cls, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([self._losses["rpn1_cross_entropy"],
                                                                                                       self._losses['rpn1_loss_box'],
                                                                                                       self._losses['cross1_entropy'],
-                                                                                                      self._losses['loss1_box'],
                                                                                                       self._losses["rpn_cross_entropy"],
                                                                                                       self._losses['rpn_loss_box'],
                                                                                                       self._losses['cross_entropy'],
@@ -655,7 +656,7 @@ class Network(object):
                                                                                                       self._losses['total_loss'],
                                                                                                       train_op],
                                                                                                      feed_dict=feed_dict)
-    return rpn1_loss_cls, rpn1_loss_box, loss1_cls, loss1_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss
+    return rpn1_loss_cls, rpn1_loss_box, loss1_cls, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss
 
   def train_step_with_summary(self, sess, blobs, train_op):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
@@ -671,10 +672,9 @@ class Network(object):
     #                                                                              feed_dict=feed_dict)
     # return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary
 
-    rpn1_loss_cls, rpn1_loss_box, loss1_cls, loss1_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary, _ = sess.run([self._losses["rpn1_cross_entropy"],
+    rpn1_loss_cls, rpn1_loss_box, loss1_cls,rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary, _ = sess.run([self._losses["rpn1_cross_entropy"],
                                                                                                                self._losses['rpn1_loss_box'],
                                                                                                                self._losses['cross1_entropy'],
-                                                                                                               self._losses['loss1_box'],
                                                                                                                self._losses["rpn_cross_entropy"],
                                                                                                                self._losses['rpn_loss_box'],
                                                                                                                self._losses['cross_entropy'],
@@ -683,7 +683,7 @@ class Network(object):
                                                                                                                self._summary_op,
                                                                                                                train_op],
                                                                                                               feed_dict=feed_dict)
-    return rpn1_loss_cls, rpn1_loss_box, loss1_cls, loss1_box, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary
+    return rpn1_loss_cls, rpn1_loss_box, loss1_cls, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary
 
   def train_step_no_return(self, sess, blobs, train_op):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
