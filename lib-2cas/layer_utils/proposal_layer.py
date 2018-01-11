@@ -48,27 +48,27 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
 #######################################CASCADE VIA RPN#################################################
   ##----------------------------------chris: regression add up-----------------------------------##
   if pre_bbox_pred.size != 0 and boxChain == True:
+      for pre_box_info in pre_bbox_pred:
 
+        #chris: preprocess box_pred
+        pre_box_info = np.transpose(pre_box_info,[0,3,1,2])
+        pre_box_info = pre_box_info.transpose((0, 2, 3, 1)).reshape((-1, 4))
+        #chris
 
-      #chris: preprocess box_pred
-      pre_bbox_pred = np.transpose(pre_bbox_pred,[0,3,1,2])
-      pre_bbox_pred = pre_bbox_pred.transpose((0, 2, 3, 1)).reshape((-1, 4))
-      #chris
+        # print('anchors 1 ', anchors)
 
-      # print('anchors 1 ', anchors)
+        #chris: use previous layer
+        anchors = bbox_transform_inv(anchors, pre_box_info)
+        #chris
 
-      #chris: use previous layer
-      anchors = bbox_transform_inv(anchors, pre_bbox_pred)
-      #chris
-
-      #print('anchors 2 ', anchors) 
+        #print('anchors 2 ', anchors) 
   ##----------------------------------------chris------------------------------------------------##
 
 
   proposals = bbox_transform_inv(anchors, rpn_bbox_pred)
   proposals = clip_boxes(proposals, im_info[:2])
 
-
+  print(name)
   #--------------TRAIN reject here---------------#
   if cfg_key == 'TRAIN' and rej_inds.size != 0:
 

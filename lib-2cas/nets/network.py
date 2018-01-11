@@ -27,12 +27,16 @@ from layer_utils.focal_loss import SigmoidFocalClassificationLoss as fl
 repeat = cfg.TRAIN.REPEAT
 
 #FRCN BATCH
-frcn_batch1 = cfg.TRAIN.FRCN_BATCH1
+frcn_batch3 = cfg.TRAIN.FRCN_BATCH3
 frcn_batch2 = cfg.TRAIN.FRCN_BATCH2
+frcn_batch1 = cfg.TRAIN.FRCN_BATCH1
+frcn_batch = cfg.TRAIN.FRCN_BATCH
 
 #RPN BATCH
-rpn1_batch = cfg.TRAIN.RPN1_BATCH
+rpn3_batch = cfg.TRAIN.RPN3_BATCH
 rpn2_batch = cfg.TRAIN.RPN2_BATCH
+rpn1_batch = cfg.TRAIN.RPN1_BATCH
+rpn_batch = cfg.TRAIN.RPN_BATCH
 
 
     
@@ -143,7 +147,7 @@ class Network(object):
 
 
   def _softmax_layer(self, bottom, name):
-    if name == 'rpn_cls_prob_reshape' or name == 'rpn1_cls_prob_reshape':
+    if name == 'rpn_cls_prob_reshape' or name == 'rpn1_cls_prob_reshape' or name == 'rpn2s_cls_prob_reshape' or name == 'rpn3_cls_prob_reshape':
       input_shape = tf.shape(bottom)
       bottom_reshaped = tf.reshape(bottom, [-1, input_shape[-1]])
       reshaped_score = tf.nn.softmax(bottom_reshaped, name=name)
@@ -362,8 +366,8 @@ class Network(object):
     #                         ],
     #                               feed_dict=feed_dict)
 
-    b1,b2,  = sess.run([self._predictions['scale5_2'],
-                        self.endpoint['conv5_2'],
+    b1,b2,  = sess.run([self._predictions['conv3'],
+                        self._predictions['conv5_3'],
                        ],
                       feed_dict=feed_dict)
 
@@ -372,6 +376,83 @@ class Network(object):
 
   def _add_losses(self, sigma_rpn=3.0):
     with tf.variable_scope('loss_' + self._tag) as scope:
+
+
+      # RPN - 3, class loss
+      rpn3_cls_score = tf.reshape(self._predictions['rpn3_cls_score_reshape'], [-1, 2])
+      rpn3_label = tf.reshape(self._anchor_targets['anchor3_rpn_labels'], [-1])
+      rpn3_select = tf.where(tf.not_equal(rpn3_label, -1))
+      rpn3_cls_score = tf.reshape(tf.gather(rpn3_cls_score, rpn3_select), [-1, 2])
+      rpn3_label = tf.reshape(tf.gather(rpn3_label, rpn3_select), [-1])
+
+      #repeat
+      if repeat:
+        rpn3_cls_score, rpn3_label = self.repeat(rpn3_cls_score, rpn3_label, rpn3_batch)
+
+      #initialize rpn1 cls loss
+      rpn3_cross_entropy = None
+
+      if cfg.TRAIN.FOCAL_LOSS3 == True:
+        #use Focal Loss
+        length = tf.size(rpn3_label)
+        rpn3_label = tf.one_hot(indices = rpn3_label, depth=2, on_value=1, off_value=0, axis=-1)
+        rpn3_label = tf.cast(rpn3_label, tf.float32)
+        rpn3_weights = tf.ones([1, length], tf.float32)
+        rpn3_cross_entropy = self.fl.compute_loss(prediction_tensor = rpn3_cls_score, target_tensor = rpn3_label, weights = rpn3_weights)
+      else:
+        #use Original Loss
+        rpn3_cross_entropy = tf.reduce_mean(
+          tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn3_cls_score, labels=rpn3_label))
+
+
+      # RPN - 1, bbox loss
+      rpn3_bbox_pred = self._predictions['rpn3_bbox_pred']
+      rpn3_bbox_targets = self._anchor_targets['anchor3_rpn_bbox_targets']
+      rpn3_bbox_inside_weights = self._anchor_targets['anchor3_rpn_bbox_inside_weights']
+      rpn3_bbox_outside_weights = self._anchor_targets['anchor3_rpn_bbox_outside_weights']
+
+      rpn3_loss_box = self._smooth_l1_loss(rpn3_bbox_pred, rpn3_bbox_targets, rpn3_bbox_inside_weights,
+                                          rpn3_bbox_outside_weights, sigma=sigma_rpn, dim=[1, 2, 3])
+
+
+
+      # RPN - 2, class loss
+      rpn2_cls_score = tf.reshape(self._predictions['rpn2_cls_score_reshape'], [-1, 2])
+      rpn2_label = tf.reshape(self._anchor_targets['anchor3_rpn_labels'], [-1])
+      rpn2_select = tf.where(tf.not_equal(rpn2_label, -1))
+      rpn2_cls_score = tf.reshape(tf.gather(rpn2_cls_score, rpn2_select), [-1, 2])
+      rpn2_label = tf.reshape(tf.gather(rpn2_label, rpn2_select), [-1])
+
+      #repeat
+      if repeat:
+        rpn2_cls_score, rpn2_label = self.repeat(rpn2_cls_score, rpn2_label, rpn2_batch)
+
+      #initialize rpn1 cls loss
+      rpn2_cross_entropy = None
+
+      if cfg.TRAIN.FOCAL_LOSS2 == True:
+        #use Focal Loss
+        length = tf.size(rpn2_label)
+        rpn2_label = tf.one_hot(indices = rpn2_label, depth=2, on_value=1, off_value=0, axis=-1)
+        rpn2_label = tf.cast(rpn2_label, tf.float32)
+        rpn2_weights = tf.ones([1, length], tf.float32)
+        rpn2_cross_entropy = self.fl.compute_loss(prediction_tensor = rpn2_cls_score, target_tensor = rpn2_label, weights = rpn2_weights)
+      else:
+        #use Original Loss
+        rpn2_cross_entropy = tf.reduce_mean(
+          tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn2_cls_score, labels=rpn2_label))
+
+
+      # RPN - 1, bbox loss
+      rpn2_bbox_pred = self._predictions['rpn2_bbox_pred']
+      rpn2_bbox_targets = self._anchor_targets['anchor2_rpn_bbox_targets']
+      rpn2_bbox_inside_weights = self._anchor_targets['anchor2_rpn_bbox_inside_weights']
+      rpn2_bbox_outside_weights = self._anchor_targets['anchor2_rpn_bbox_outside_weights']
+
+      rpn2_loss_box = self._smooth_l1_loss(rpn2_bbox_pred, rpn2_bbox_targets, rpn2_bbox_inside_weights,
+                                          rpn2_bbox_outside_weights, sigma=sigma_rpn, dim=[1, 2, 3])
+
+
 
       # RPN - 1, class loss
       rpn1_cls_score = tf.reshape(self._predictions['rpn1_cls_score_reshape'], [-1, 2])
@@ -384,9 +465,9 @@ class Network(object):
       if repeat:
         rpn1_cls_score, rpn1_label = self.repeat(rpn1_cls_score, rpn1_label, rpn1_batch)
     
-      #debug
-      self._losses_debug['pos_label1'] = tf.reshape(tf.gather(rpn1_label, tf.where(tf.equal(rpn1_label, 1))), [-1])
-      self._losses_debug['neg_label1'] = tf.reshape(tf.gather(rpn1_label, tf.where(tf.equal(rpn1_label, 0))), [-1])
+      # #debug
+      # self._losses_debug['pos_label1'] = tf.reshape(tf.gather(rpn1_label, tf.where(tf.equal(rpn1_label, 1))), [-1])
+      # self._losses_debug['neg_label1'] = tf.reshape(tf.gather(rpn1_label, tf.where(tf.equal(rpn1_label, 0))), [-1])
 
       #initialize rpn1 cls loss
       rpn1_cross_entropy = None
@@ -418,7 +499,7 @@ class Network(object):
       # rpn_cls_score = tf.reshape(self._predictions['rpn_cls_score_reshape'], [-1, 2])
 
       # used add up rpn
-      rpn_cls_score = tf.reshape(self._predictions['rpn12_cls_score_reshape'], [-1, 2])
+      rpn_cls_score = tf.reshape(self._predictions['rpn_cls_score_reshape'], [-1, 2])
 
       rpn_label = tf.reshape(self._anchor_targets['anchor_rpn_labels'], [-1])
 
@@ -435,20 +516,20 @@ class Network(object):
       #repeat   
 
       if repeat:
-        rpn_cls_score, rpn_label = self.repeat(rpn_cls_score, rpn_label, rpn2_batch) 
+        rpn_cls_score, rpn_label = self.repeat(rpn_cls_score, rpn_label, rpn_batch) 
 
       # print('rpn score ',rpn_cls_score)
       # print('rpn_label ',rpn_label)
 
 
-      #debug
-      self._losses_debug['pos_label2'] = tf.reshape(tf.gather(rpn_label, tf.where(tf.equal(rpn_label, 1))), [-1])
-      self._losses_debug['neg_label2'] = tf.reshape(tf.gather(rpn_label, tf.where(tf.equal(rpn_label, 0))), [-1])
+      # #debug
+      # self._losses_debug['pos_label2'] = tf.reshape(tf.gather(rpn_label, tf.where(tf.equal(rpn_label, 1))), [-1])
+      # self._losses_debug['neg_label2'] = tf.reshape(tf.gather(rpn_label, tf.where(tf.equal(rpn_label, 0))), [-1])
 
       #initialize rpn cls loss
       rpn_cross_entropy = None
 
-      if cfg.TRAIN.FOCAL_LOSS2 == True:
+      if cfg.TRAIN.FOCAL_LOSS == True:
         #use Focal Loss
         length = tf.size(rpn_label)
         rpn_label = tf.one_hot(indices = rpn_label, depth=2, on_value=1, off_value=0, axis=-1)
@@ -470,7 +551,33 @@ class Network(object):
 
       rpn_loss_box = self._smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights,
                                           rpn_bbox_outside_weights, sigma=sigma_rpn, dim=[1, 2, 3])
-      
+    
+
+      # RCNN3, class loss
+      cls3_score = self._predictions["cls3_score"]
+      label3 = tf.reshape(self._proposal_targets["rpn3_rois_labels"], [-1])
+
+      #----resize score and label---------#
+      if repeat:
+        cls3_score, label3 = self.repeat(cls3_score, label3, frcn_batch3, True)
+
+      cross3_entropy = tf.reduce_mean(
+        tf.nn.sparse_softmax_cross_entropy_with_logits(
+          logits=tf.reshape(cls3_score, [-1, self._num_classes]), labels=label3))
+
+
+      # RCNN2, class loss
+      cls2_score = self._predictions["cls2_score"]
+      label2 = tf.reshape(self._proposal_targets["rpn2_rois_labels"], [-1])
+
+      #----resize score and label---------#
+      if repeat:
+        cls2_score, label2 = self.repeat(cls2_score, label2, frcn_batch2, True)
+
+      cross2_entropy = tf.reduce_mean(
+        tf.nn.sparse_softmax_cross_entropy_with_logits(
+          logits=tf.reshape(cls2_score, [-1, self._num_classes]), labels=label2))
+
 
       # RCNN1, class loss
       cls1_score = self._predictions["cls1_score"]
@@ -493,7 +600,7 @@ class Network(object):
       #----resize score and label---------#
 
       if repeat:
-        cls_score, label = self.repeat(cls_score, label, frcn_batch2, True)
+        cls_score, label = self.repeat(cls_score, label, frcn_batch, True)
 
       cross_entropy = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -507,6 +614,18 @@ class Network(object):
 
       loss_box = self._smooth_l1_loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
 
+
+      #add rpn3 into loss
+      self._losses['rpn3_cross_entropy'] = rpn3_cross_entropy
+      self._losses['rpn3_loss_box'] = rpn3_loss_box
+      self._losses['cross3_entropy'] = cross3_entropy
+      #done
+
+      #add rpn2 into loss
+      self._losses['rpn2_cross_entropy'] = rpn2_cross_entropy
+      self._losses['rpn2_loss_box'] = rpn2_loss_box
+      self._losses['cross2_entropy'] = cross2_entropy
+      #done
 
       #add rpn1 into loss
       self._losses['rpn1_cross_entropy'] = rpn1_cross_entropy
@@ -523,7 +642,8 @@ class Network(object):
       # loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
 
       #new loss with rpn1
-      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + rpn1_cross_entropy*0.05 + rpn1_loss_box*0.05 + cross1_entropy*0.05
+      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + rpn1_cross_entropy*0.05 + rpn1_loss_box*0.05 + cross1_entropy*0.05 + rpn2_cross_entropy*0.025 + rpn2_loss_box*0.025 + cross2_entropy*0.025 + rpn3_cross_entropy*0.0125 + rpn3_loss_box*0.0125 + cross3_entropy*0.0125
+
 
       self._losses['total_loss'] = loss
 

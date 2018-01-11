@@ -36,21 +36,25 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
   # map of shape (..., H, W)
   height, width = rpn_cls_score.shape[1:3]
 
+  # print('anchor width ', width)
+  # print('anchor height ', height)
+
 
   ##-----------------box gression add up----------------##
   if pre_bbox_pred.size != 0 and boxChain == True:
+      for pre_box_info in pre_bbox_pred:
 
-      #chris: preprocess box_pred
-      pre_bbox_pred = np.transpose(pre_bbox_pred,[0,3,1,2])
-      bbox_deltas = pre_bbox_pred
-      bbox_deltas = bbox_deltas.transpose((0, 2, 3, 1)).reshape((-1, 4))
-      #chris
+        #chris: preprocess box_pred
+        pre_box_info = np.transpose(pre_box_info,[0,3,1,2])
+        bbox_deltas = pre_box_info
+        bbox_deltas = bbox_deltas.transpose((0, 2, 3, 1)).reshape((-1, 4))
+        #chris
 
-      #chris: use previous layer
-      proposals = bbox_transform_inv(all_anchors, bbox_deltas)
-      #chris
-   
-      all_anchors = proposals
+        #chris: use previous layer
+        proposals = bbox_transform_inv(all_anchors, bbox_deltas)
+        #chris
+     
+        all_anchors = proposals
 
       #print('anchors' ,all_anchors)
    
