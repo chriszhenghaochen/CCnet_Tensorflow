@@ -26,6 +26,10 @@ from layer_utils.focal_loss import SigmoidFocalClassificationLoss as fl
 #repeat
 repeat = cfg.TRAIN.REPEAT
 
+#batch
+rpn_batch = cfg.TRAIN.BATCH_SIZE
+frcn_batch = cfg.TRAIN.RPN_BATCHSIZE
+
     
 class Network(object):
   def __init__(self, batch_size=1):
