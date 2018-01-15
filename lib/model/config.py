@@ -192,7 +192,7 @@ __C.TEST.RPN_POST_NMS_TOP_N = 300
 
 # Testing mode, default to be 'nms', 'top' is slower but better
 # See report for details
-__C.TEST.MODE = 'nms'
+__C.TEST.MODE = 'top'
 
 # Only useful when TEST.MODE is 'top', specifies the number of top proposals to select
 __C.TEST.RPN_TOP_N = 5000
@@ -272,7 +272,7 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 
 ##########################CCNET SETTING########################
 #------------FRCN Config--------#
-__C.TRAIN.RPN_POST_NMS_TOP_N = 3000
+__C.TRAIN.RPN_POST_NMS_TOP_N = 2500
 
 #----------CCNet Config--------#
 #REJECT
@@ -291,14 +291,14 @@ __C.SCORE_FACTOR2 = 0.8
 
 
 #TRAIN SETTING
-__C.TRAIN.RPN_BATCH3 = 1024
-__C.TRAIN.RPN_BATCH2 = 768
-__C.TRAIN.RPN_BATCH1 = 512
+__C.TRAIN.RPN_BATCH3 = 640
+__C.TRAIN.RPN_BATCH2 = 512
+__C.TRAIN.RPN_BATCH1 = 384
 __C.TRAIN.RPN_BATCH = 256
 
-__C.TRAIN.BATCH3 = 1024
-__C.TRAIN.BATCH2 = 768
-__C.TRAIN.BATCH1 = 512
+__C.TRAIN.BATCH3 = 640
+__C.TRAIN.BATCH2 = 512
+__C.TRAIN.BATCH1 = 384
 __C.TRAIN.BATCH = 256
 
 __C.TRAIN.FOCAL_LOSS3 = False

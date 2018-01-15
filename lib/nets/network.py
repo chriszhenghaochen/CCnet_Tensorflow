@@ -582,7 +582,7 @@ class Network(object):
 
 
       #total loss
-      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + cross_entropy1*0.2 + cross_entropy2*0.04 + cross_entropy3*0.008 + rpn1_cross_entropy*0.1 + rpn2_cross_entropy*0.02 + rpn3_cross_entropy*0.004
+      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + cross_entropy1*0.01 + cross_entropy2*0.001 + cross_entropy3*0.0001 + rpn1_cross_entropy*0.01 + rpn2_cross_entropy*0.001 + rpn3_cross_entropy*0.0001
 
 
       self._losses['total_loss'] = loss
