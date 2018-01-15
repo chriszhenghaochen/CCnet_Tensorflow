@@ -220,6 +220,7 @@ class SolverWrapper(object):
 
       now = time.time()
 
+      # debug session
       # a, b = self.net.DEBUG(sess, blobs)
       # print(np.asarray(a).shape)
       # print(np.asarray(b).shape)
