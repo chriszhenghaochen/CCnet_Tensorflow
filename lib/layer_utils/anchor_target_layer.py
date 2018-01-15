@@ -16,9 +16,8 @@ from utils.cython_bbox import bbox_overlaps
 from model.bbox_transform import bbox_transform
 from model.config import cfg
 
-OHEM = cfg.TRAIN.OHEM
 
-def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anchors, num_anchors, reject_inds):
+def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anchors, num_anchors, reject_inds, batch, OHEM):
   """Same as the anchor target layer in original Fast/er RCNN """
 
 
@@ -83,7 +82,8 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
   #OHEM
   # subsample positive labels if we have too many
   if OHEM:
-    num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
+    # num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
+    num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * batch)
     fg_inds = np.where(labels == 1)[0]
     if len(fg_inds) > num_fg:
       disable_inds = npr.choice(
@@ -91,7 +91,8 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
       labels[disable_inds] = -1
 
     # subsample negative labels if we have too many
-    num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
+    # num_bg = cfg.TRAIN.RPN_BATCHSIZE - np.sum(labels == 1)
+    num_bg = batch - np.sum(labels == 1)    
     bg_inds = np.where(labels == 0)[0]
     if len(bg_inds) > num_bg:
       disable_inds = npr.choice(

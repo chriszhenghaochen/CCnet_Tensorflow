@@ -275,7 +275,7 @@ class vgg16(Network):
 
       #generate target
       if is_training:          
-        with tf.control_dependencies([rpn_labels]):
+        with tf.control_dependencies([rpn3_labels]):
           rois_train3, _, passinds3 = self._proposal_target_layer(rois, roi_scores, "rpn3_rois", [], batch3)
 
           cls3_score_train = tf.gather(cls3_score, tf.reshape(passinds3,[-1]), name = 'cls3_score_train')

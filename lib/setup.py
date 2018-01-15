@@ -37,7 +37,7 @@ def locate_cuda():
         nvcc = pjoin(home, 'bin', 'nvcc')
     else:
         # otherwise, search the PATH for NVCC
-        default_path = pjoin(os.sep, 'usr', 'local', 'cuda-8.0', 'bin')
+        default_path = pjoin(os.sep, 'usr', 'local', 'cuda-7.5', 'bin')
         nvcc = find_in_path('nvcc', os.environ['PATH'] + os.pathsep + default_path)
         if nvcc is None:
             raise EnvironmentError('The nvcc binary could not be '
@@ -112,6 +112,12 @@ ext_modules = [
         include_dirs = [numpy_include]
     ),
     Extension(
+        "utils.cython_nms",
+        ["utils/nms.pyx"],
+        extra_compile_args={'gcc': ["-Wno-cpp", "-Wno-unused-function"]},
+        include_dirs = [numpy_include]
+    ),
+    Extension(
         "nms.cpu_nms",
         ["nms/cpu_nms.pyx"],
         extra_compile_args={'gcc': ["-Wno-cpp", "-Wno-unused-function"]},
@@ -127,7 +133,7 @@ ext_modules = [
         # we're only going to use certain compiler args with nvcc and not with gcc
         # the implementation of this trick is in customize_compiler() below
         extra_compile_args={'gcc': ["-Wno-unused-function"],
-                            'nvcc': ['-arch=sm_52',
+                            'nvcc': ['-arch=sm_35',
                                      '--ptxas-options=-v',
                                      '-c',
                                      '--compiler-options',

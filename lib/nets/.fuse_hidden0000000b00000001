@@ -55,7 +55,7 @@ class Network(object):
     self.fl = fl(alpha=0.5)
 
     #debug
-    self.debug = {}
+    self._losses_debug = {}
 
   #Focal Loss
   def focal_loss(self, prediction_tensor, target_tensor, weights=None, alpha=0.25, gamma=2):
@@ -237,12 +237,12 @@ class Network(object):
         [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.int64],
         name="proposal_target")
 
-      rois.set_shape([batch, 5])
-      roi_scores.set_shape([batch])
-      labels.set_shape([batch, 1])
-      bbox_targets.set_shape([batch, self._num_classes * 4])
-      bbox_inside_weights.set_shape([batch, self._num_classes * 4])
-      bbox_outside_weights.set_shape([batch, self._num_classes * 4])
+      rois.set_shape([cfg.TRAIN.BATCH_SIZE, 5])
+      roi_scores.set_shape([cfg.TRAIN.BATCH_SIZE])
+      labels.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
+      bbox_targets.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
+      bbox_inside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
+      bbox_outside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
 
       keep_inds = tf.cast(tf.reshape(keep_inds, [-1]), tf.int32)
 
@@ -343,17 +343,17 @@ class Network(object):
                  self._gt_boxes: blobs['gt_boxes']}
 
 
-    b1,b2  = sess.run([self.debug["label3"],
-                       self.debug['score3'],
-                    ],
+    b1, b2, b3  = sess.run([self._predictions["total_inds"],
+                            self._predictions["p5f"],
+                            self._predictions["cls_prob_reshape"],
+                           ],
                       feed_dict=feed_dict)
 
-    return b1, b2
+    return b1, b2, b3
 
 
   def _add_losses(self, sigma_rpn=3.0):
     with tf.variable_scope('loss_' + self._tag) as scope:
-      
 
       #################################################RPN###################################################
       #------------------------------------rpn3------------------------------------#
@@ -509,11 +509,8 @@ class Network(object):
       cls3_score = self._predictions["cls3_score_train"]
       label3 = tf.reshape(self._proposal_targets["rpn3_rois_labels"], [-1])
 
-      self.debug['label3'] = label3
-      self.debug['score3'] = self._predictions["cls3_score_train"]
-
-      # if repeat:
-      #   cls_score3, label3 = self.repeat(cls_score3, label3, batch3, True)
+      if repeat:
+        cls_score3, label3 = self.repeat(cls_score3, label3, batch3, True)
 
       cross_entropy3 = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -582,7 +579,7 @@ class Network(object):
 
 
       #total loss
-      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + cross_entropy1*0.2 + cross_entropy2*0.04 + cross_entropy3*0.008 + rpn1_cross_entropy*0.1 + rpn2_cross_entropy*0.02 + rpn3_cross_entropy*0.004
+      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + cross_entropy1*0.5 + cross_entropy2*0.25 + cross_entropy3*0.125 + rpn1_cross_entropy*0.075 + rpn2_cross_entropy*0.0375 + rpn3_cross_entropy*0.01875
 
 
       self._losses['total_loss'] = loss

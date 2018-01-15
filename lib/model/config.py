@@ -68,7 +68,7 @@ __C.TRAIN.MAX_SIZE = 1000
 # Images to use per minibatch
 __C.TRAIN.IMS_PER_BATCH = 1
 
-
+__C.TRAIN.BATCH_SIZE = 128
 
 # Fraction of minibatch that is labeled foreground (i.e. class > 0)
 __C.TRAIN.FG_FRACTION = 0.25
@@ -131,7 +131,7 @@ __C.TRAIN.RPN_CLOBBER_POSITIVES = False
 # Max number of foreground examples
 __C.TRAIN.RPN_FG_FRACTION = 0.5
 # # Total number of examples
-# __C.TRAIN.RPN_BATCHSIZE = 256
+__C.TRAIN.RPN_BATCHSIZE = 256
 # NMS threshold used on RPN proposals
 __C.TRAIN.RPN_NMS_THRESH = 0.7
 # Number of top scoring boxes to keep before apply NMS to RPN proposals
@@ -272,33 +272,47 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 
 ##########################CCNET SETTING########################
 #------------FRCN Config--------#
-__C.TRAIN.BATCH_SIZE = 128
-__C.TRAIN.RPN_POST_NMS_TOP_N = 1024
-__C.TRAIN.RPN_BATCHSIZE = 256
-
+__C.TRAIN.RPN_POST_NMS_TOP_N = 512
 
 #----------CCNet Config--------#
-#Train
-__C.RPN_REJECT3 = 9.9999999e-01
-__C.RPN_REJECT2 = 9.999999e-01
-__C.RPN_REJECT1 = 9.99999e-01
+#REJECT
+__C.RPN_REJECT3 = 1
+__C.RPN_REJECT2 = 1
+__C.RPN_REJECT1 = 1
 
-__C.REJECT3 = 9.9999e-01
-__C.REJECT2 = 0.999e-1
-__C.REJECT1 = 0.99e-01
+__C.REJECT3 = 1
+__C.REJECT2 = 1
+__C.REJECT1 = 1
 
-#Score Factor
+
+#CHAIN SCORE FACTOR
 __C.SCORE_FACTOR1 = 0.2
 __C.SCORE_FACTOR2 = 0.8
 
-#OHEM
-__C.TRAIN.OHEM = True
 
-#Focal Loss
+#TRAIN SETTING
+__C.TRAIN.RPN_BATCH3 = 1024
+__C.TRAIN.RPN_BATCH2 = 768
+__C.TRAIN.RPN_BATCH1 = 512
+__C.TRAIN.RPN_BATCH = 256
+
+__C.TRAIN.BATCH3 = 200
+__C.TRAIN.BATCH2 = 180
+__C.TRAIN.BATCH1 = 160
+__C.TRAIN.BATCH = 140
+
+__C.TRAIN.FOCAL_LOSS3 = False
+__C.TRAIN.FOCAL_LOSS2 = False
+__C.TRAIN.FOCAL_LOSS1 = False
 __C.TRAIN.FOCAL_LOSS = False
 
-#repeat
 __C.TRAIN.REPEAT = False
+
+__C.TRAIN.OHEM3 = True
+__C.TRAIN.OHEM2 = True
+__C.TRAIN.OHEM1 = True
+__C.TRAIN.OHEM = True
+
 ###############################################################
 
 

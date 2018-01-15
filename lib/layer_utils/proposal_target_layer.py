@@ -15,7 +15,7 @@ from model.config import cfg
 from model.bbox_transform import bbox_transform
 from utils.cython_bbox import bbox_overlaps
 
-def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes, passinds):
+def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes, passinds, batch):
   """
   Assign object detection proposals to ground-truth targets. Produces proposal
   classification labels and bounding-box regression targets.
@@ -25,9 +25,13 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes, passinds
   # # (i.e., rpn.proposal_layer.ProposalLayer), or any other source
   # all_rois = rpn_rois
   # all_scores = rpn_scores
+  if passinds.size != 0:
+    all_rois = rpn_rois[passinds]
+    all_scores = rpn_scores[passinds]
 
-  all_rois = rpn_rois[passinds]
-  all_scores = rpn_scores[passinds]
+  else:
+    all_rois = rpn_rois
+    all_scores = rpn_scores
 
   # Include ground-truth boxes in the set of candidate rois
   if cfg.TRAIN.USE_GT:
@@ -39,7 +43,8 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes, passinds
     all_scores = np.vstack((all_scores, zeros))
 
   num_images = 1
-  rois_per_image = cfg.TRAIN.BATCH_SIZE / num_images
+  # rois_per_image = cfg.TRAIN.BATCH_SIZE / num_images
+  rois_per_image = batch / num_images
   fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
   # Sample rois with classification labels and bounding box regression
