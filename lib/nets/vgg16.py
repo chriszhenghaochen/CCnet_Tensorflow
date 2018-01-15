@@ -380,6 +380,7 @@ class vgg16(Network):
 
       #-------------------------------------------------------rcnn -------------------------------------------------------#
       rois = tf.gather(rois, tf.reshape(total_inds,[-1]))
+      roi_scores = tf.gather(roi_scores, tf.reshape(total_inds,[-1]))
       cls5_score = tf.gather(cls5_score, tf.reshape(total_inds,[-1]))
 
       #generate target
