@@ -379,23 +379,21 @@ class vgg16(Network):
       self._act_summaries.append(self.endpoint['conv5_2'])
 
       #-------------------------------------------------------rcnn -------------------------------------------------------#
-      if cfg.POOLING_MODE == 'crop':
-        pool5 = self._crop_pool_layer(self.endpoint['conv5_3'], rois, "pool5")
-        self.endpoint['pool5'] = pool5
-      else:
-        raise NotImplementedError
-
-
-      pool5 = tf.gather(pool5, tf.reshape(total_inds,[-1]))
+      rois = tf.gather(rois, tf.reshape(total_inds,[-1]))
       cls5_score = tf.gather(cls5_score, tf.reshape(total_inds,[-1]))
 
       #generate target
       if is_training:          
         with tf.control_dependencies([rpn_labels]):
-          rois_train, _, passinds = self._proposal_target_layer(rois, roi_scores, "rpn_rois", total_inds, batch)
-
-          pool5 = tf.gather(pool5, tf.reshape(passinds,[-1]))
+          rois, _, passinds = self._proposal_target_layer(rois, roi_scores, "rpn_rois", [], batch)
           cls5_score = tf.gather(cls5_score, tf.reshape(passinds,[-1]))
+
+
+      if cfg.POOLING_MODE == 'crop':
+        pool5 = self._crop_pool_layer(self.endpoint['conv5_3'], rois, "pool5")
+        self.endpoint['pool5'] = pool5
+      else:
+        raise NotImplementedError
 
 
       pool5_flat = slim.flatten(pool5, scope='flatten')
