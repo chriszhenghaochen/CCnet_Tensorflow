@@ -26,20 +26,11 @@ def proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, im_info, _feat_stride, ancho
   scores = scores.reshape((-1, 1))
 
   length = scores.shape[0]
-  if length < rpn_top_n:
-    # Random selection, maybe unnecessary and loses good proposals
-    # But such case rarely happens
-    top_inds = npr.choice(length, size=rpn_top_n, replace=True)
-  else:
-    top_inds = scores.argsort(0)[::-1]
-    top_inds = top_inds[:rpn_top_n]
-    top_inds = top_inds.reshape(rpn_top_n, )
-
 
   ######################REJECT VIA RPN################
   ###------------------------reject process---------------------------###
-  if reject_inds.size != 0:
-    reject_inds = np.unique(reject_inds)
+  if rpn_reject_inds.size != 0:
+    reject_inds = np.unique(rpn_reject_inds)
     scores[reject_inds] = -2
 
     passinds = np.where(scores != -2)[0]
@@ -51,6 +42,19 @@ def proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, im_info, _feat_stride, ancho
   ###-------------------------reject done-----------------------------###
   #####################################################
 
+
+  length = scores.shape[0]
+  if length < rpn_top_n:
+    # Random selection, maybe unnecessary and loses good proposals
+    # But such case rarely happens
+    top_inds = npr.choice(length, size=rpn_top_n, replace=True)
+  else:
+    top_inds = scores.argsort(0)[::-1]
+    top_inds = top_inds[:rpn_top_n]
+    top_inds = top_inds.reshape(rpn_top_n, )
+
+
+	
   # Do the selection here
   anchors = anchors[top_inds, :]
   rpn_bbox_pred = rpn_bbox_pred[top_inds, :]
