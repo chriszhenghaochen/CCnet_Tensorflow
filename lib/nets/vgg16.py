@@ -380,11 +380,13 @@ class vgg16(Network):
 
       #-------------------------------------------------------rcnn -------------------------------------------------------#
       rois = tf.gather(rois, tf.reshape(total_inds,[-1]))
-      roi_scores = tf.gather(roi_scores, tf.reshape(total_inds,[-1]))
+      #roi_scores = tf.gather(roi_scores, tf.reshape(total_inds,[-1]))
       cls5_score = tf.gather(cls5_score, tf.reshape(total_inds,[-1]))
 
       #generate target
-      if is_training:          
+      if is_training:
+	roi_scores = tf.gather(roi_scores, tf.reshape(total_inds,[-1]))
+          
         with tf.control_dependencies([rpn_labels]):
           rois, _, passinds = self._proposal_target_layer(rois, roi_scores, "rpn_rois", [], batch)
           cls5_score = tf.gather(cls5_score, tf.reshape(passinds,[-1]))
@@ -440,15 +442,16 @@ class vgg16(Network):
       self._predictions["rpn_cls_score_reshape"] = rpn_cls_score_reshape
       self._predictions["rpn_cls_prob"] = rpn_cls_prob
       self._predictions["rpn_bbox_pred"] = rpn_bbox_pred
+      
+      if is_training:
+     	#store RCNN3
+      	self._predictions["cls3_score_train"] = cls3_score_train
 
-      #store RCNN3
-      self._predictions["cls3_score_train"] = cls3_score_train
+      	#store RCNN2
+      	self._predictions["cls2_score_train"] = cls4_score_train
 
-      #store RCNN2
-      self._predictions["cls2_score_train"] = cls4_score_train
-
-      #store RCNN1
-      self._predictions["cls1_score_train"] = cls5_score_train
+        #store RCNN1
+        self._predictions["cls1_score_train"] = cls5_score_train
 
       #store RCNN
       self._predictions["cls_score"] = cls_score
