@@ -509,11 +509,8 @@ class Network(object):
       cls3_score = self._predictions["cls3_score_train"]
       label3 = tf.reshape(self._proposal_targets["rpn3_rois_labels"], [-1])
 
-      self.debug['label3'] = label3
-      self.debug['score3'] = self._predictions["cls3_score_train"]
-
-      # if repeat:
-      #   cls_score3, label3 = self.repeat(cls_score3, label3, batch3, True)
+      if repeat:
+        cls_score3, label3 = self.repeat(cls_score3, label3, batch3, True)
 
       cross_entropy3 = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
