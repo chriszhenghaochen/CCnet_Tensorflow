@@ -152,7 +152,7 @@ class vgg16(Network):
       rpn2_cls_prob = self._reshape_layer(rpn2_cls_prob_reshape, self._num_anchors * 2, "rpn2_cls_prob")
 
       rpn2_cls_prob_reshape = tf.reshape(rpn2_cls_prob, [-1, 2])
-      rpn2_reject_inds = tf.reshape(tf.where(tf.greater(rpn2_cls_prob_reshape[:,0], rpn2_reject)), [-1])
+      rpn2_reject_inds = tf.where(tf.greater(rpn2_cls_prob_reshape[:,0], rpn2_reject))
       # rpn2_reject_inds = tf.concat([rpn3_reject_inds, rpn2_reject_inds],0)
 
 
