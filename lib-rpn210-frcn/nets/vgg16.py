@@ -329,9 +329,6 @@ class vgg16(Network):
 
 
       cls4_inds = tf.reshape(tf.where(tf.less(cls4_prob[:,0], reject2)), [-1])
-      # cls4_inds = tf.reshape(tf.concat([cls4_inds, cls3_inds], 0), [-1])
-      # cls4_inds_uniq, _ = tf.unique(cls4_inds) 
-
       self._act_summaries.append(conv4_resize)
 
       # #---------------------------------------------------------rcnn 1---------------------------------------------------------------#
@@ -364,6 +361,7 @@ class vgg16(Network):
 
       cls5_score = self._score_add_up(cls4_score, cls5_score, factor1, factor2, 'cls5_score')
       cls5_prob = self._softmax_layer(cls5_score, "cls5_prob")
+      cls5_prob = tf.gather(cls5_prob, tf.reshape(cls4_inds,[-1]))
 
       #generate target
       if is_training:          
@@ -375,20 +373,23 @@ class vgg16(Network):
 
 
       cls5_inds = tf.reshape(tf.where(tf.less(cls5_prob[:,0], reject1)), [-1])
-      total_inds = tf.reshape(tf.concat([cls5_inds, cls4_inds], 0), [-1])
-      total_inds, _ = tf.unique(total_inds)
 
       self._act_summaries.append(self.endpoint['conv5_2'])
 
       #-------------------------------------------------------rcnn -------------------------------------------------------#
-      rois = tf.gather(rois, tf.reshape(total_inds,[-1]))
-      cls5_score = tf.gather(cls5_score, tf.reshape(total_inds,[-1]))
+      rois = tf.gather(rois, tf.reshape(cls4_inds,[-1]))
+      cls5_score = tf.gather(cls5_score, tf.reshape(cls4_inds,[-1]))
+
+      rois = tf.gather(rois, tf.reshape(cls5_inds,[-1]))
+      cls5_score = tf.gather(cls5_score, tf.reshape(cls5_inds,[-1]))
 
       #generate target
       if is_training:
                
         with tf.control_dependencies([rpn_labels]):
-          roi_scores = tf.gather(roi_scores, tf.reshape(total_inds,[-1]))
+          roi_scores = tf.gather(roi_scores, tf.reshape(cls4_inds,[-1]))
+          roi_scores = tf.gather(roi_scores, tf.reshape(cls5_inds,[-1]))
+
           rois, _, passinds = self._proposal_target_layer(rois, roi_scores, "rpn_rois", [], batch)
           cls5_score = tf.gather(cls5_score, tf.reshape(passinds,[-1]))
 
