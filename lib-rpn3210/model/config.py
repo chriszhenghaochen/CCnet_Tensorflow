@@ -272,7 +272,7 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 
 ##########################CCNET SETTING########################
 #------------FRCN Config--------#
-__C.TRAIN.RPN_POST_NMS_TOP_N = 2500
+__C.TRAIN.RPN_POST_NMS_TOP_N = 3000
 
 #----------CCNet Config--------#
 #REJECT
@@ -280,9 +280,9 @@ __C.RPN_REJECT3 = 9.9999999e-01
 __C.RPN_REJECT2 = 9.99999e-01
 __C.RPN_REJECT1 = 9.999e-01
 
-__C.REJECT3 = 9.999e-01
-__C.REJECT2 = 0.99
-__C.REJECT1 = 0.9
+__C.REJECT3 = 9.9999999e-01
+__C.REJECT2 = 9.99999e-01
+__C.REJECT1 = 9.999e-01
 
 
 #CHAIN SCORE FACTOR

@@ -69,13 +69,17 @@ class vgg16(Network):
       net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3],
                         trainable=is_training, scope='conv3')
 
-      #store conv3_3
-      self.endpoint['conv3_3'] = net
-
       #continue conv4
       net = slim.max_pool2d(net, [2, 2], padding='SAME', scope='pool3')
-      net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3],
+      net = slim.repeat(net, 2, slim.conv2d, 512, [3, 3],
                         trainable=is_training, scope='conv4')
+
+      #store conv4_3
+      self.endpoint['conv4_2'] = net
+
+      #continue conv5/conv5_3
+      net = slim.conv2d(net, 512, [3, 3], trainable=is_training, scope = 'conv4/conv4_3')
+
 
       #store conv4_3
       self.endpoint['conv4_3'] = net
@@ -101,7 +105,7 @@ class vgg16(Network):
 
       ###############################################RPN START####################################################################
       #-----------------------------------------------rpn 3------------------------------------------------------------#
-      conv3_resize = slim.avg_pool2d(self.endpoint['conv3_3'], [4, 4], padding='SAME', scope='conv3_resize', stride = 4)
+      conv3_resize = slim.avg_pool2d(self.endpoint['conv4_2'], [2, 2], padding='SAME', scope='conv3_resize')
 
       # rpn 3
       rpn3 = slim.conv2d(conv3_resize, 512, [3, 3], trainable=is_training, weights_initializer=initializer, scope="rpn3_conv/3x3")

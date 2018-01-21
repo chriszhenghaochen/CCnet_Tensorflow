@@ -406,6 +406,7 @@ class vgg16(Network):
       cls5_inds = tf.reshape(tf.where(tf.less(cls5_prob[:,0], reject1)), [-1])
       rois = tf.gather(rois, tf.reshape(cls5_inds,[-1]))
       cls5_score = tf.gather(cls5_score, tf.reshape(cls5_inds,[-1]))
+      
       self._act_summaries.append(self.endpoint['conv5_2'])
 
       #-------------------------------------------------------rcnn -------------------------------------------------------#
