@@ -94,7 +94,7 @@ class SolverWrapper(object):
     # Build data layers for both training and validation set
     self.data_layer = RoIDataLayer(self.roidb, self.imdb.num_classes)
     self.data_layer_val = RoIDataLayer(self.valroidb, self.imdb.num_classes, random=True)
-    print('1')
+    print('12')
     # Determine different scales for anchors, see paper
     with sess.graph.as_default():
       # Set the random seed for tensorflow

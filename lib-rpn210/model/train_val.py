@@ -243,9 +243,9 @@ class SolverWrapper(object):
 
       # Display training information
       if iter % (cfg.TRAIN.DISPLAY) == 0:
-        print('iter: %d / %d, total loss: %.6f\n >>> rpn2_loss_cls: %.6f\n >>> rpn1_loss_cls: %.6f\n >>> loss_cls2: %.6f\n  >>> loss_cls1: %.6f\n'
+        print('iter: %d / %d, total loss: %.6f\n >>> rpn2_loss_cls: %.6f\n >>> rpn1_loss_cls: %.6f\n'
               ' >>> rpn_loss_cls: %.6f\n >>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
-              (iter, max_iters, total_loss, loss_cls2, loss_cls1, rpn2_loss_cls, rpn1_loss_cls, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
+              (iter, max_iters, total_loss, rpn2_loss_cls, rpn1_loss_cls, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
         print('speed: {:.3f}s / iter'.format(timer.average_time))
 
       if iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
