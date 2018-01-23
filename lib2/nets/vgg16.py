@@ -71,14 +71,14 @@ class vgg16(Network):
 
       #continue conv4
       net = slim.max_pool2d(net, [2, 2], padding='SAME', scope='pool3')
-      net = slim.repeat(net, 2, slim.conv2d, 512, [3, 3],
+      net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3],
                         trainable=is_training, scope='conv4')
 
-      #store conv4_3
-      self.endpoint['conv4_2'] = net
+      # #store conv4_3
+      # self.endpoint['conv4_2'] = net
 
-      #continue conv5/conv5_3
-      net = slim.conv2d(net, 512, [3, 3], trainable=is_training, scope = 'conv4/conv4_3')
+      # #continue conv5/conv5_3
+      # net = slim.conv2d(net, 512, [3, 3], trainable=is_training, scope = 'conv4/conv4_3')
 
 
       #store conv4_3
@@ -327,8 +327,8 @@ class vgg16(Network):
 
       fc4_2 = slim.fully_connected(pool41_flat, 512, scope='fc4_2', weights_initializer=initializer)
 
-      if is_training:
-        fc4_2 = slim.dropout(fc4_2, keep_prob=0.5, is_training=True, scope='fc4_2')
+      # if is_training:
+      #   fc4_2 = slim.dropout(fc4_2, keep_prob=0.5, is_training=True, scope='fc4_2')
 
       # fc4_2 = self._score_add_up(fc_combine3_2, fc4_2, factor1, factor2, 'fc_42_comb')
 
@@ -380,8 +380,8 @@ class vgg16(Network):
 
       fc5_2 = slim.fully_connected(pool51_flat, 512, scope='fc5_2', weights_initializer=initializer)
       
-      if is_training:
-        fc5_2 = slim.dropout(fc5_2, keep_prob=0.5, is_training=True, scope='fc5_2')
+      # if is_training:
+      #   fc5_2 = slim.dropout(fc5_2, keep_prob=0.5, is_training=True, scope='fc5_2')
 
       fc5_2 = self._score_add_up(fc_combine4_2, fc5_2, factor1, factor2, 'fc_52_comb')
 

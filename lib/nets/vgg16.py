@@ -281,12 +281,11 @@ class vgg16(Network):
 
       fc3_2 = slim.fully_connected(pool31_flat, 512, scope='fc3_2', weights_initializer=initializer)
 
-      if is_training:
-        fc3_2 = slim.dropout(fc3_2, keep_prob=0.5, is_training=True, scope='fc3_2')
+      # if is_training:
+      #   fc3_2 = slim.dropout(fc3_2, keep_prob=0.5, is_training=True, scope='fc3_2')
 
       #combine
       scale3_2 = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'scale3_2')
-      # self._predictions['scale3_2'] = scale3_2
       fc_combine3_2 = tf.scalar_mul(scale3_2, fc3_2)
 
       cls3_score = slim.fully_connected(fc_combine3_2, self._num_classes, 
@@ -327,8 +326,8 @@ class vgg16(Network):
 
       fc4_2 = slim.fully_connected(pool41_flat, 512, scope='fc4_2', weights_initializer=initializer)
 
-      if is_training:
-        fc4_2 = slim.dropout(fc4_2, keep_prob=0.5, is_training=True, scope='fc4_2')
+      # if is_training:
+      #   fc4_2 = slim.dropout(fc4_2, keep_prob=0.5, is_training=True, scope='fc4_2')
 
       fc4_2 = self._score_add_up(fc_combine3_2, fc4_2, factor1, factor2, 'fc_42_comb')
 
@@ -380,8 +379,8 @@ class vgg16(Network):
 
       fc5_2 = slim.fully_connected(pool51_flat, 512, scope='fc5_2', weights_initializer=initializer)
       
-      if is_training:
-        fc5_2 = slim.dropout(fc5_2, keep_prob=0.5, is_training=True, scope='fc5_2')
+      # if is_training:
+      #   fc5_2 = slim.dropout(fc5_2, keep_prob=0.5, is_training=True, scope='fc5_2')
 
       fc5_2 = self._score_add_up(fc_combine4_2, fc5_2, factor1, factor2, 'fc_52_comb')
 
