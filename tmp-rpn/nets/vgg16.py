@@ -146,10 +146,6 @@ class vgg16(Network):
                                   weights_initializer=initializer,
                                   padding='VALID', activation_fn=None, scope='rpn2_cls_score')
 
-
-      # #add up 2 scores rpn1 and rpn
-      # rpn2_cls_score = self._score_add_up(rpn3_cls_score, rpn2_cls_score, factor1, factor2, 'rpn2_cls_score')
-
       #used added up score
       rpn2_cls_score_reshape = self._reshape_layer(rpn2_cls_score, 2, 'rpn2_cls_score_reshape')
       rpn2_cls_prob_reshape = self._softmax_layer(rpn2_cls_score_reshape, "rpn2_cls_prob_reshape")
@@ -176,7 +172,6 @@ class vgg16(Network):
                                   weights_initializer=initializer,
                                   padding='VALID', activation_fn=None, scope='rpn1_cls_score_pre')
 
-      # rpn1_cls_score = self._score_add_up(rpn2_cls_score, rpn1_cls_score, factor1, factor2, 'rpn1_cls_score')
 
       # change it so that the score has 2 as its channel size
       rpn1_cls_score_reshape = self._reshape_layer(rpn1_cls_score, 2, 'rpn1_cls_score_reshape')
@@ -217,14 +212,13 @@ class vgg16(Network):
       rpn0_cls_prob_reshape = self._softmax_layer(rpn0_cls_score_reshape, "rpn0_cls_prob_reshape")
       rpn0_cls_prob = self._reshape_layer(rpn0_cls_prob_reshape, self._num_anchors * 2, "rpn0_cls_prob")
 
+      rpn3_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn3_cls_score_scale')
+      rpn2_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn2_cls_score_scale')
+      rpn1_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn1_cls_score_scale')
+      rpn0_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn0_cls_score_scale')
 
-      # #add up 2 scores rpn1 and rpn
-      # rpn_cls_score = self._score_add_up(rpn1_cls_score, rpn_cls_score, factor1, factor2, 'rpn_cls_score')
-
-      rpn_cls_score_1 = tf.add(rpn3_cls_score*0.25, rpn2_cls_score*0.25)
-      rpn_cls_score_2 = tf.add(rpn_cls_score_1, rpn1_cls_score*0.25)
-      rpn_cls_score = tf.add(rpn_cls_score_2, rpn0_cls_score*0.25)
-
+      rpn_cls_score = rpn3_cls_score*rpn3_cls_score_scale*0.25 + rpn2_cls_score*rpn2_cls_score_scale*0.25 + rpn1_cls_score*rpn1_cls_score_scale*0.25 + rpn0_cls_score*rpn0_cls_score_scale*0.25
+    
       #used added up score
       rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape')
       rpn_cls_prob_reshape = self._softmax_layer(rpn_cls_score_reshape, "rpn_cls_prob_reshape")
@@ -455,7 +449,7 @@ class vgg16(Network):
       self._predictions["rpn1_cls_score_reshape"] = rpn1_cls_score_reshape
 
       #store0 rpn values
-      self._predictions["rpn0_cls_score_reshape"] = rpn3_cls_score_reshape
+      self._predictions["rpn0_cls_score_reshape"] = rpn0_cls_score_reshape
 
       #store rpn values
       self._predictions["rpn_cls_score"] = rpn_cls_score

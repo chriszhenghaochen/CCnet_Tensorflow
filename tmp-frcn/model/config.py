@@ -272,7 +272,7 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 
 ##########################CCNET SETTING########################
 #------------FRCN Config--------#
-__C.TRAIN.RPN_POST_NMS_TOP_N = 2500
+__C.TRAIN.RPN_POST_NMS_TOP_N = 3000
 
 #----------CCNet Config--------#
 #REJECT

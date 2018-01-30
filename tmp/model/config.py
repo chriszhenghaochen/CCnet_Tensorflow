@@ -40,7 +40,7 @@ __C.TRAIN.DISPLAY = 10
 __C.TRAIN.DOUBLE_BIAS = True
 
 # Whether to initialize the weights with truncated normal distribution 
-__C.TRAIN.TRUNCATED = False
+__C.TRAIN.TRUNCATED = True
 
 # Whether to have weight decay on bias as well
 __C.TRAIN.BIAS_DECAY = False
@@ -272,7 +272,7 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 
 ##########################CCNET SETTING########################
 #------------FRCN Config--------#
-__C.TRAIN.RPN_POST_NMS_TOP_N = 2500
+__C.TRAIN.RPN_POST_NMS_TOP_N = 3000
 
 #----------CCNet Config--------#
 #REJECT
@@ -280,9 +280,9 @@ __C.RPN_REJECT3 = 9.9999999e-01
 __C.RPN_REJECT2 = 9.99999e-01
 __C.RPN_REJECT1 = 9.999e-01
 
-__C.REJECT3 = 1.1
-__C.REJECT2 = 1.1
-__C.REJECT1 = 1.1
+__C.REJECT3 = 1.1 #not reject
+__C.REJECT2 = 1.1 #not reject
+__C.REJECT1 = 1.1 #not reject
 
 
 #CHAIN SCORE FACTOR

@@ -541,7 +541,7 @@ class Network(object):
 
 
       #-----------------------------RCNN1_1, class loss-----------------------------------#
-      cls_score_0 = self._predictions["cls_score_0"]
+      cls_score_0 = self._predictions["cls0_score"]
       label = tf.reshape(self._proposal_targets["rpn_rois_labels"], [-1])
 
       if repeat:
@@ -554,7 +554,7 @@ class Network(object):
 
       #-----------------------------RCNN, class loss-----------------------------------#
       cls_score = self._predictions["cls_score"]
-      # label = tf.reshape(self._proposal_targets["rpn_rois_labels"], [-1])
+      label = tf.reshape(self._proposal_targets["rpn_rois_labels"], [-1])
 
       if repeat:
         cls_score, label = self.repeat(cls_score, label, batch, True)

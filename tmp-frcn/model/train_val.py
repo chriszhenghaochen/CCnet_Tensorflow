@@ -96,7 +96,7 @@ class SolverWrapper(object):
     self.data_layer_val = RoIDataLayer(self.valroidb, self.imdb.num_classes, random=True)
     # Determine different scales for anchors, see paper
     with sess.graph.as_default():
-      print('start training')
+      print('training')
       # Set the random seed for tensorflow
       tf.set_random_seed(cfg.RNG_SEED)
       # Build the main computation graph

@@ -96,7 +96,7 @@ class SolverWrapper(object):
     self.data_layer_val = RoIDataLayer(self.valroidb, self.imdb.num_classes, random=True)
     # Determine different scales for anchors, see paper
     with sess.graph.as_default():
-      print('start training')
+      print('Cascade Chain Network Training Start')
       # Set the random seed for tensorflow
       tf.set_random_seed(cfg.RNG_SEED)
       # Build the main computation graph
@@ -241,7 +241,7 @@ class SolverWrapper(object):
           self.net.train_step(sess, blobs, train_op)
       timer.toc()
 
-      # Display training information
+      # Display training informations
       if iter % (cfg.TRAIN.DISPLAY) == 0:
         print('iter: %d / %d, total loss: %.6f\n >>> rpn3_loss_cls: %.6f\n >>> rpn2_loss_cls: %.6f\n >>> rpn1_loss_cls: %.6f\n >>> rpn0_loss_cls: %.6f\n >>> loss_cls3: %.6f\n >>> loss_cls2: %.6f\n >>> loss_cls1: %.6f\n'
               ' >>> loss_cls0: %.6f\n >>> rpn_loss_cls: %.6f\n >>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \

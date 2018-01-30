@@ -452,7 +452,8 @@ class Network(object):
         rpn1_cross_entropy = tf.reduce_mean(
           tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn1_cls_score, labels=rpn1_label))
 
-      #------------------------------------rpn------------------------------------#
+      
+      #------------------------------------rpn0------------------------------------#
       rpn0_cls_score = tf.reshape(self._predictions['rpn0_cls_score_reshape'], [-1, 2])
 
       rpn0_label = tf.reshape(self._anchor_targets['anchor_rpn_labels'], [-1])
@@ -476,7 +477,7 @@ class Network(object):
 
       if cfg.TRAIN.FOCAL_LOSS == True:
         #use Focal Loss
-        length = tf.size(rpn0_label)
+        length = tf.size(rpn_label)
         rpn0_label = tf.one_hot(indices = rpn0_label, depth=2, on_value=1, off_value=0, axis=-1)
         rpn0_label = tf.cast(rpn0_label, tf.float32)
         rpn0_weights = tf.ones([1, length], tf.float32)
@@ -485,7 +486,7 @@ class Network(object):
         #use Original Loss
         rpn0_cross_entropy = tf.reduce_mean(
           tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn0_cls_score, labels=rpn0_label))
-
+      
       #------------------------------------rpn------------------------------------#
       rpn_cls_score = tf.reshape(self._predictions['rpn_cls_score_reshape'], [-1, 2])
 
@@ -574,7 +575,7 @@ class Network(object):
 
 
       #-----------------------------RCNN1_1, class loss-----------------------------------#
-      cls_score_0 = self._predictions["cls_score_0"]
+      cls_score_0 = self._predictions["cls0_score"]
       label = tf.reshape(self._proposal_targets["rpn_rois_labels"], [-1])
 
       if repeat:
@@ -587,7 +588,7 @@ class Network(object):
 
       #-----------------------------RCNN, class loss-----------------------------------#
       cls_score = self._predictions["cls_score"]
-      # label = tf.reshape(self._proposal_targets["rpn_rois_labels"], [-1])
+      label = tf.reshape(self._proposal_targets["rpn_rois_labels"], [-1])
 
       if repeat:
         cls_score, label = self.repeat(cls_score, label, batch, True)

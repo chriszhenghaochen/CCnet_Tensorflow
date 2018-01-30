@@ -140,7 +140,7 @@ def apply_nms(all_boxes, thresh):
   return nms_boxes
 
 def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.05):
-  print('start')
+  print('Cascade Chain Network Testing Start')
   np.random.seed(cfg.RNG_SEED)
   """Test a Fast R-CNN network on an image database."""
   num_images = len(imdb.image_index)

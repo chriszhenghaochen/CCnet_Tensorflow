@@ -279,7 +279,7 @@ class vgg16(Network):
       pool31_avg = slim.avg_pool2d(pool31_conv, [7, 7], padding='SAME', scope='pool31_avg', stride = 1) 
       pool31_flat = slim.flatten(pool31_avg, scope='flatten31') 
 
-      fc3_2 = slim.fully_connected(pool31_flat, 512, scope='fc3_2', weights_initializer=initializer)
+      fc3_2 = slim.fully_connected(pool31_flat, 512, scope='fc3_2', weights_initializer=tf.contrib.layers.xavier_initializer(), trainable=is_training)
 
       # if is_training:
       #   fc3_2 = slim.dropout(fc3_2, keep_prob=0.5, is_training=True, scope='fc3_2')
@@ -324,7 +324,7 @@ class vgg16(Network):
       pool41_avg = slim.avg_pool2d(pool41_conv, [7, 7], padding='SAME', scope='pool41_avg', stride = 1) 
       pool41_flat = slim.flatten(pool41_avg, scope='flatten41') 
 
-      fc4_2 = slim.fully_connected(pool41_flat, 512, scope='fc4_2', weights_initializer=initializer)
+      fc4_2 = slim.fully_connected(pool41_flat, 512, scope='fc4_2', weights_initializer=tf.contrib.layers.xavier_initializer(), trainable=is_training)
 
       # if is_training:
       #   fc4_2 = slim.dropout(fc4_2, keep_prob=0.5, is_training=True, scope='fc4_2')
@@ -378,7 +378,7 @@ class vgg16(Network):
       pool51_avg = slim.avg_pool2d(pool51_conv, [7, 7], padding='SAME', scope='pool51_avg', stride = 1) 
       pool51_flat = slim.flatten(pool51_avg, scope='flatten51') 
 
-      fc5_2 = slim.fully_connected(pool51_flat, 512, scope='fc5_2', weights_initializer=initializer)
+      fc5_2 = slim.fully_connected(pool51_flat, 512, scope='fc5_2', weights_initializer=tf.contrib.layers.xavier_initializer(), trainable=is_training)
       
       # if is_training:
       #   fc5_2 = slim.dropout(fc5_2, keep_prob=0.5, is_training=True, scope='fc5_2')
@@ -435,17 +435,19 @@ class vgg16(Network):
       fc7 = slim.fully_connected(fc6, 4096, scope='fc7')
       if is_training:
         fc7 = slim.dropout(fc7, keep_prob=0.5, is_training=True, scope='dropout7')
-      cls_score_0 = slim.fully_connected(fc7, self._num_classes, 
+      cls0_score = slim.fully_connected(fc7, self._num_classes, 
                                        weights_initializer=initializer,
                                        trainable=is_training,
                                        activation_fn=None, scope='cls_score_pre')
 
-      self._predictions["cls_score_0"] = cls_score_0
+      self._predictions["cls0_score"] = cls0_score
 
-      cls_score_1 = tf.add(cls3_score*0.25, cls4_score*0.25)
-      cls_score_2 = tf.add(cls_score_1, cls5_score*0.25)
-      cls_score = tf.add(cls_score_2, cls_score_0*0.25, name ='cls_score')
+      cls3_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls3_score_scale')
+      cls2_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls2_score_scale')
+      cls1_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls1_score_scale')
+      cls0_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls0_score_scale')
 
+      cls_score = cls3_score*cls3_score_scale*0.25 + cls4_score*cls2_score_scale*0.25 + cls5_score*cls1_score_scale*0.25 + cls0_score*cls0_score_scale*0.25
 
 
       cls_prob = self._softmax_layer(cls_score, "cls_prob")
