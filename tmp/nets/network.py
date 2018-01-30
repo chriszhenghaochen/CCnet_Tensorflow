@@ -452,6 +452,39 @@ class Network(object):
         rpn1_cross_entropy = tf.reduce_mean(
           tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn1_cls_score, labels=rpn1_label))
 
+      #------------------------------------rpn------------------------------------#
+      rpn0_cls_score = tf.reshape(self._predictions['rpn0_cls_score_reshape'], [-1, 2])
+
+      rpn0_label = tf.reshape(self._anchor_targets['anchor_rpn_labels'], [-1])
+
+      rpn0_select = tf.where(tf.not_equal(rpn0_label, -1))
+      rpn0_cls_score = tf.reshape(tf.gather(rpn0_cls_score, rpn0_select), [-1, 2])
+      rpn0_label = tf.reshape(tf.gather(rpn0_label, rpn0_select), [-1])
+
+      # rpn reject here using label -2
+      rpn0_select = tf.where(tf.not_equal(rpn0_label, -2))
+      rpn0_cls_score = tf.reshape(tf.gather(rpn0_cls_score, rpn0_select), [-1, 2])
+      rpn0_label = tf.reshape(tf.gather(rpn0_label, rpn0_select), [-1])
+
+      
+      #repeat   
+      if repeat:
+        rpn0_cls_score, rpn0_label = self.repeat(rpn0_cls_score, rpn0_label, rpn_batch) 
+
+      #initialize rpn cls loss
+      rpn0_cross_entropy = None
+
+      if cfg.TRAIN.FOCAL_LOSS == True:
+        #use Focal Loss
+        length = tf.size(rpn0_label)
+        rpn0_label = tf.one_hot(indices = rpn0_label, depth=2, on_value=1, off_value=0, axis=-1)
+        rpn0_label = tf.cast(rpn0_label, tf.float32)
+        rpn0_weights = tf.ones([1, length], tf.float32)
+        rpn0_cross_entropy = self.fl.compute_loss(prediction_tensor = rpn0_cls_score, target_tensor = rpn0_label, weights = rpn0_weights)
+      else:
+        #use Original Loss
+        rpn0_cross_entropy = tf.reduce_mean(
+          tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn0_cls_score, labels=rpn0_label))
 
       #------------------------------------rpn------------------------------------#
       rpn_cls_score = tf.reshape(self._predictions['rpn_cls_score_reshape'], [-1, 2])
@@ -540,9 +573,21 @@ class Network(object):
           logits=tf.reshape(cls1_score, [-1, self._num_classes]), labels=label1))
 
 
+      #-----------------------------RCNN1_1, class loss-----------------------------------#
+      cls_score_0 = self._predictions["cls_score_0"]
+      label = tf.reshape(self._proposal_targets["rpn_rois_labels"], [-1])
+
+      if repeat:
+        cls_score_0, label = self.repeat(cls_score_0, label, batch, True)
+
+      cross_entropy0 = tf.reduce_mean(
+        tf.nn.sparse_softmax_cross_entropy_with_logits(
+          logits=tf.reshape(cls_score_0, [-1, self._num_classes]), labels=label))
+
+
       #-----------------------------RCNN, class loss-----------------------------------#
       cls_score = self._predictions["cls_score"]
-      label = tf.reshape(self._proposal_targets["rpn_rois_labels"], [-1])
+      # label = tf.reshape(self._proposal_targets["rpn_rois_labels"], [-1])
 
       if repeat:
         cls_score, label = self.repeat(cls_score, label, batch, True)
@@ -565,6 +610,7 @@ class Network(object):
       # RCNN Loss
       self._losses['cross_entropy'] = cross_entropy
       self._losses['loss_box'] = loss_box
+      self._losses['cross_entropy0'] = cross_entropy0
       self._losses['cross_entropy1'] = cross_entropy1
       self._losses['cross_entropy2'] = cross_entropy2
       self._losses['cross_entropy3'] = cross_entropy3
@@ -572,13 +618,14 @@ class Network(object):
       # RPN Loss
       self._losses['rpn_cross_entropy'] = rpn_cross_entropy
       self._losses['rpn_loss_box'] = rpn_loss_box
+      self._losses['rpn0_cross_entropy'] = rpn0_cross_entropy
       self._losses['rpn1_cross_entropy'] = rpn1_cross_entropy
       self._losses['rpn2_cross_entropy'] = rpn2_cross_entropy
       self._losses['rpn3_cross_entropy'] = rpn3_cross_entropy
 
 
       #total loss
-      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + cross_entropy1*0.01 + cross_entropy2*0.001 + cross_entropy3*0.0001 + rpn1_cross_entropy*0.01 + rpn2_cross_entropy*0.001 + rpn3_cross_entropy*0.0001
+      loss = cross_entropy + cross_entropy0*0.1 + loss_box + rpn_cross_entropy + rpn0_cross_entropy*0.1 + rpn_loss_box + cross_entropy1*0.01 + cross_entropy2*0.001 + cross_entropy3*0.0001 + rpn1_cross_entropy*0.01 + rpn2_cross_entropy*0.001 + rpn3_cross_entropy*0.0001
 
 
       self._losses['total_loss'] = loss
@@ -693,12 +740,14 @@ class Network(object):
   def train_step(self, sess, blobs, train_op):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
-    rpn3_loss_cls, rpn2_loss_cls, rpn1_loss_cls, loss_cls3, loss_cls2, loss_cls1, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([self._losses["rpn3_cross_entropy"],
+    rpn3_loss_cls, rpn2_loss_cls, rpn1_loss_cls, rpn0_loss_cls, loss_cls3, loss_cls2, loss_cls1, loss_cls0, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([self._losses["rpn3_cross_entropy"],
                                                                                                                                                       self._losses["rpn2_cross_entropy"],
                                                                                                                                                       self._losses["rpn1_cross_entropy"],
+                                                                                                                                                      self._losses["rpn0_cross_entropy"],
                                                                                                                                                       self._losses["cross_entropy3"],
                                                                                                                                                       self._losses["cross_entropy2"],
                                                                                                                                                       self._losses["cross_entropy1"],
+                                                                                                                                                      self._losses['cross_entropy0'],
                                                                                                                                                       self._losses["rpn_cross_entropy"],
                                                                                                                                                       self._losses['rpn_loss_box'],
                                                                                                                                                       self._losses['cross_entropy'],
@@ -706,19 +755,21 @@ class Network(object):
                                                                                                                                                       self._losses['total_loss'],
                                                                                                                                                       train_op],
                                                                                                                                                       feed_dict=feed_dict)
-    return rpn3_loss_cls, rpn2_loss_cls, rpn1_loss_cls, loss_cls3, loss_cls2, loss_cls1, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss
+    return rpn3_loss_cls, rpn2_loss_cls, rpn1_loss_cls, rpn0_loss_cls, loss_cls3, loss_cls2, loss_cls1, loss_cls0, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss
 
 
   def train_step_with_summary(self, sess, blobs, train_op):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
 
-    rpn3_loss_cls, rpn2_loss_cls, rpn1_loss_cls, loss_cls3, loss_cls2, loss_cls1, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary, _ = sess.run([self._losses["rpn3_cross_entropy"],
+    rpn3_loss_cls, rpn2_loss_cls, rpn1_loss_cls, rpn0_loss_cls, loss_cls3, loss_cls2, loss_cls1, loss_cls0, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary, _ = sess.run([self._losses["rpn3_cross_entropy"],
                                                                                                                                                                self._losses["rpn2_cross_entropy"],
                                                                                                                                                                self._losses["rpn1_cross_entropy"],
+                                                                                                                                                               self._losses["rpn0_cross_entropy"],
                                                                                                                                                                self._losses["cross_entropy3"],
                                                                                                                                                                self._losses["cross_entropy2"],
                                                                                                                                                                self._losses["cross_entropy1"],
+                                                                                                                                                               self._losses["cross_entropy0"],
                                                                                                                                                                self._losses["rpn_cross_entropy"],
                                                                                                                                                                self._losses['rpn_loss_box'],
                                                                                                                                                                self._losses['cross_entropy'],
@@ -727,7 +778,7 @@ class Network(object):
                                                                                                                                                                self._summary_op,
                                                                                                                                                                train_op],
                                                                                                                                                                feed_dict=feed_dict)
-    return rpn3_loss_cls, rpn2_loss_cls, rpn1_loss_cls, loss_cls3, loss_cls2, loss_cls1, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary
+    return rpn3_loss_cls, rpn2_loss_cls, rpn1_loss_cls, rpn0_loss_cls, loss_cls3, loss_cls2, loss_cls1, loss_cls0, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary
 
 
   def train_step_no_return(self, sess, blobs, train_op):

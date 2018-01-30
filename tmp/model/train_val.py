@@ -96,7 +96,7 @@ class SolverWrapper(object):
     self.data_layer_val = RoIDataLayer(self.valroidb, self.imdb.num_classes, random=True)
     # Determine different scales for anchors, see paper
     with sess.graph.as_default():
-      print('start')
+      print('start training')
       # Set the random seed for tensorflow
       tf.set_random_seed(cfg.RNG_SEED)
       # Build the main computation graph
@@ -227,7 +227,7 @@ class SolverWrapper(object):
 
       if now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
         # Compute the graph with summary
-        rpn3_loss_cls, rpn2_loss_cls, rpn1_loss_cls, loss_cls3, loss_cls2, loss_cls1, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
+        rpn3_loss_cls, rpn2_loss_cls, rpn1_loss_cls, rpn0_loss_cls, loss_cls3, loss_cls2, loss_cls1, loss_cls0, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
           self.net.train_step_with_summary(sess, blobs, train_op)
         self.writer.add_summary(summary, float(iter))
         # Also check the summary on the validation set
@@ -237,15 +237,15 @@ class SolverWrapper(object):
         last_summary_time = now
       else:
         # Compute the graph without summary
-        rpn3_loss_cls, rpn2_loss_cls, rpn1_loss_cls, loss_cls3, loss_cls2, loss_cls1, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
+        rpn3_loss_cls, rpn2_loss_cls, rpn1_loss_cls, rpn0_loss_cls, loss_cls3, loss_cls2, loss_cls1, loss_cls0, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
           self.net.train_step(sess, blobs, train_op)
       timer.toc()
 
       # Display training information
       if iter % (cfg.TRAIN.DISPLAY) == 0:
-        print('iter: %d / %d, total loss: %.6f\n >>> rpn3_loss_cls: %.6f\n >>> rpn2_loss_cls: %.6f\n >>> rpn1_loss_cls: %.6f\n >>> loss_cls3: %.6f\n >>> loss_cls2: %.6f\n >>> loss_cls1: %.6f\n'
-              ' >>> rpn_loss_cls: %.6f\n >>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
-              (iter, max_iters, total_loss, rpn3_loss_cls, rpn2_loss_cls, rpn1_loss_cls, loss_cls3, loss_cls2, loss_cls1, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
+        print('iter: %d / %d, total loss: %.6f\n >>> rpn3_loss_cls: %.6f\n >>> rpn2_loss_cls: %.6f\n >>> rpn1_loss_cls: %.6f\n >>> rpn0_loss_cls: %.6f\n >>> loss_cls3: %.6f\n >>> loss_cls2: %.6f\n >>> loss_cls1: %.6f\n'
+              ' >>> loss_cls0: %.6f\n >>> rpn_loss_cls: %.6f\n >>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
+              (iter, max_iters, total_loss, rpn3_loss_cls, rpn2_loss_cls, rpn1_loss_cls, rpn0_loss_cls, loss_cls3, loss_cls2, loss_cls1, loss_cls0, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
         print('speed: {:.3f}s / iter'.format(timer.average_time))
 
       if iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
