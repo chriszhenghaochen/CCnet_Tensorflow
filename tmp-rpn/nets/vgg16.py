@@ -170,7 +170,7 @@ class vgg16(Network):
       self._act_summaries.append(rpn1)
       rpn1_cls_score = slim.conv2d(rpn1, self._num_anchors * 2, [1, 1], trainable=is_training,
                                   weights_initializer=initializer,
-                                  padding='VALID', activation_fn=None, scope='rpn1_cls_score_pre')
+                                  padding='VALID', activation_fn=None, scope='rpn1_cls_score')
 
 
       # change it so that the score has 2 as its channel size
@@ -185,7 +185,7 @@ class vgg16(Network):
 
       if is_training:
         #compute anchor1 loss       
-        rpn1_labels = self._anchor_target_layer(rpn1_cls_score, "anchor1", rpn2_reject_inds, rpn_batch2, OHEM2)
+        rpn1_labels = self._anchor_target_layer(rpn1_cls_score, "anchor1", rpn2_reject_inds, rpn_batch1, OHEM1)
       ##---------------------------------------------rpn 1 done------------------------------------------------------------##
 
       
@@ -219,6 +219,7 @@ class vgg16(Network):
 
       rpn_cls_score = rpn3_cls_score*rpn3_cls_score_scale*0.25 + rpn2_cls_score*rpn2_cls_score_scale*0.25 + rpn1_cls_score*rpn1_cls_score_scale*0.25 + rpn0_cls_score*rpn0_cls_score_scale*0.25
     
+
       #used added up score
       rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape')
       rpn_cls_prob_reshape = self._softmax_layer(rpn_cls_score_reshape, "rpn_cls_prob_reshape")
@@ -226,7 +227,7 @@ class vgg16(Network):
 
       if is_training:
         #compute anchor loss       
-        rpn_labels = self._anchor_target_layer(rpn_cls_score, "anchor", rpn1_reject_inds, rpn_batch1, OHEM1)
+        rpn_labels = self._anchor_target_layer(rpn_cls_score, "anchor", rpn1_reject_inds, rpn_batch, OHEM)
 
 
 
