@@ -146,8 +146,13 @@ class vgg16(Network):
 
       rpn2_cls_score = slim.conv2d(rpn2, self._num_anchors * 2, [1, 1], trainable=is_training,
                                   weights_initializer=initializer,
-                                  padding='VALID', activation_fn=None, scope='rpn2_cls_score')
+                                  padding='VALID', activation_fn=None, scope='rpn2_cls_score_pre')
 
+
+      #add up 2 scores rpn1 and rpn
+      rpn2_cls_score = self._score_add_up(rpn3_cls_score, rpn2_cls_score, factor1, factor2, 'rpn2_cls_score')
+
+      #used added up score
       rpn2_cls_score_reshape = self._reshape_layer(rpn2_cls_score, 2, 'rpn2_cls_score_reshape')
       rpn2_cls_prob_reshape = self._softmax_layer(rpn2_cls_score_reshape, "rpn2_cls_prob_reshape")
       rpn2_cls_prob = self._reshape_layer(rpn2_cls_prob_reshape, self._num_anchors * 2, "rpn2_cls_prob")
@@ -176,8 +181,9 @@ class vgg16(Network):
       self._act_summaries.append(rpn1)
       rpn1_cls_score = slim.conv2d(rpn1, self._num_anchors * 2, [1, 1], trainable=is_training,
                                   weights_initializer=initializer,
-                                  padding='VALID', activation_fn=None, scope='rpn1_cls_score')
+                                  padding='VALID', activation_fn=None, scope='rpn1_cls_score_pre')
 
+      rpn1_cls_score = self._score_add_up(rpn2_cls_score, rpn1_cls_score, factor1, factor2, 'rpn1_cls_score')
 
       # change it so that the score has 2 as its channel size
       rpn1_cls_score_reshape = self._reshape_layer(rpn1_cls_score, 2, 'rpn1_cls_score_reshape')
@@ -209,7 +215,7 @@ class vgg16(Network):
 
       self._act_summaries.append(rpn)
 
-      rpn0_cls_score = slim.conv2d(rpn, self._num_anchors * 2, [1, 1], trainable=is_training,
+      rpn_cls_score = slim.conv2d(rpn, self._num_anchors * 2, [1, 1], trainable=is_training,
                                   weights_initializer=initializer,
                                   padding='VALID', activation_fn=None, scope='rpn_cls_score_pre')
 
@@ -217,27 +223,13 @@ class vgg16(Network):
                                   weights_initializer=initializer,
                                   padding='VALID', activation_fn=None, scope='rpn_bbox_pred')
 
-      #used added up score
-      rpn0_cls_score_reshape = self._reshape_layer(rpn0_cls_score, 2, 'rpn0_cls_score_reshape')
-      rpn0_cls_prob_reshape = self._softmax_layer(rpn0_cls_score_reshape, "rpn0_cls_prob_reshape")
-      rpn0_cls_prob = self._reshape_layer(rpn0_cls_prob_reshape, self._num_anchors * 2, "rpn0_cls_prob")
-
-      #store0 rpn values
-      self._predictions["rpn0_cls_score_reshape"] = rpn0_cls_score_reshape
-
-      # rpn3_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn3_cls_score_scale')
-      # rpn2_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn2_cls_score_scale')
-      # rpn1_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn1_cls_score_scale')
-      # rpn0_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn0_cls_score_scale')
-
-      rpn_cls_score = rpn3_cls_score*0.25 + rpn2_cls_score*0.25 + rpn1_cls_score*0.25 + rpn0_cls_score*0.25
-
+      #add up 2 scores rpn1 and rpn
+      rpn_cls_score = self._score_add_up(rpn1_cls_score, rpn_cls_score, factor1, factor2, 'rpn_cls_score')
 
       #used added up score
       rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape')
       rpn_cls_prob_reshape = self._softmax_layer(rpn_cls_score_reshape, "rpn_cls_prob_reshape")
       rpn_cls_prob = self._reshape_layer(rpn_cls_prob_reshape, self._num_anchors * 2, "rpn_cls_prob")
-
 
       if is_training:
         #compute anchor loss       
@@ -308,7 +300,7 @@ class vgg16(Network):
       #reject
       cls3_inds = tf.reshape(tf.where(tf.less(cls3_prob[:,0], reject3)), [-1])
       rois = tf.gather(rois, tf.reshape(cls3_inds,[-1]))
-      fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(cls3_inds,[-1]))
+      #fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(cls3_inds,[-1]))
       cls3_score = tf.gather(cls3_score, tf.reshape(cls3_inds,[-1]))
 
       self._act_summaries.append(conv3_resize)
@@ -320,7 +312,7 @@ class vgg16(Network):
           roi_scores = tf.gather(roi_scores, tf.reshape(cls3_inds,[-1]))
           rois, _, passinds4 = self._proposal_target_layer(rois, roi_scores, "rpn2_rois", batch2)
           cls3_score = tf.gather(cls3_score, tf.reshape(passinds4,[-1]))
-          fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(passinds4,[-1]))
+          #fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(passinds4,[-1]))
 
       if cfg.POOLING_MODE == 'crop':
         pool41 = self._crop_pool_layer(conv4_resize, rois, "pool41")
@@ -337,7 +329,7 @@ class vgg16(Network):
       # if is_training:
       #   fc4_2 = slim.dropout(fc4_2, keep_prob=0.5, is_training=True, scope='fc4_2')
 
-      fc4_2 = self._score_add_up(fc_combine3_2, fc4_2, factor1, factor2, 'fc_42_comb')
+      #fc4_2 = self._score_add_up(fc_combine3_2, fc4_2, factor1, factor2, 'fc_42_comb')
 
       #combine
       scale4_2 = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'scale4_2')
@@ -361,7 +353,7 @@ class vgg16(Network):
       #reject
       cls4_inds = tf.reshape(tf.where(tf.less(cls4_prob[:,0], reject2)), [-1])
       rois = tf.gather(rois, tf.reshape(cls4_inds,[-1]))
-      fc_combine4_2 = tf.gather(fc_combine4_2, tf.reshape(cls4_inds,[-1]))
+      #fc_combine4_2 = tf.gather(fc_combine4_2, tf.reshape(cls4_inds,[-1]))
       cls4_score = tf.gather(cls4_score, tf.reshape(cls4_inds,[-1]))
       cls3_score = tf.gather(cls3_score, tf.reshape(cls4_inds,[-1]))
       self._act_summaries.append(conv4_resize)
@@ -374,7 +366,7 @@ class vgg16(Network):
           rois, _, passinds5 = self._proposal_target_layer(rois, roi_scores, "rpn1_rois", batch1)
           cls4_score = tf.gather(cls4_score, tf.reshape(passinds5,[-1]))
           cls3_score = tf.gather(cls3_score, tf.reshape(passinds5,[-1]))
-          fc_combine4_2 = tf.gather(fc_combine4_2, tf.reshape(passinds5,[-1]))
+          #fc_combine4_2 = tf.gather(fc_combine4_2, tf.reshape(passinds5,[-1]))
 
       if cfg.POOLING_MODE == 'crop':
         pool51 = self._crop_pool_layer(self.endpoint['conv5_2'], rois, "pool51")
@@ -391,7 +383,7 @@ class vgg16(Network):
       # if is_training:
       #   fc5_2 = slim.dropout(fc5_2, keep_prob=0.5, is_training=True, scope='fc5_2')
 
-      fc5_2 = self._score_add_up(fc_combine4_2, fc5_2, factor1, factor2, 'fc_52_comb')
+      #fc5_2 = self._score_add_up(fc_combine4_2, fc5_2, factor1, factor2, 'fc_52_comb')
 
       #combine
       scale5_2 = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'scale5_2')
