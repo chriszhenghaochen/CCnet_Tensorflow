@@ -96,7 +96,7 @@ class SolverWrapper(object):
     self.data_layer_val = RoIDataLayer(self.valroidb, self.imdb.num_classes, random=True)
     # Determine different scales for anchors, see paper
     with sess.graph.as_default():
-      print('Cascade Chain Network Training Start')
+      print('Cascade Chain Networks Training Start')
       # Set the random seed for tensorflow
       tf.set_random_seed(cfg.RNG_SEED)
       # Build the main computation graph
@@ -221,9 +221,13 @@ class SolverWrapper(object):
       now = time.time()
 
       # #debug session
-      # a, b = self.net.DEBUG(sess, blobs)
-      # print(np.asarray(a))
-      # print(np.asarray(b))
+      # a,b,c,d = self.net.DEBUG(sess, blobs)
+      # print('cls score ', np.asarray(a).shape)
+      # print('size ',b)
+      # print('factor ',c)
+      # print('product ',d)
+
+
 
       if now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
         # Compute the graph with summary

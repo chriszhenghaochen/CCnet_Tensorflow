@@ -343,12 +343,13 @@ class Network(object):
                  self._gt_boxes: blobs['gt_boxes']}
 
 
-    b1,b2  = sess.run([self._predictions['rpn3_reject_inds_1'],
-                       self._predictions['rpn3_reject_inds_2']
-                      ],
+    b1,b2,b3,b4 = sess.run([self._predictions['cls3_score'],
+                    self._predictions['size'],
+                    self._predictions['factor'],
+                    self._predictions['add']],
                       feed_dict=feed_dict)
 
-    return b1, b2
+    return b1,b2,b3,b4
 
 
   def _add_losses(self, sigma_rpn=3.0):
