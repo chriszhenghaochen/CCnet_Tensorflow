@@ -1,4 +1,4 @@
-#Cascade Chain Network
+# Cascade Chain Network
 
 In this CC-Net, the cascaded classifier at a stage is aided by the
 classification scores in previous stages. Feature chaining is further proposed so that the feature learning for the current
@@ -15,14 +15,9 @@ multiple stages are jointly learned in an end-to-end network.
 ```
 git clone https://github.com/chriszhenghaochen/CCnet_Tensorflow
 
-cd path-to-your-folder/lib
-
-make clean
-
-make
 ```
 
-## Run, Train and Test your model
+## Make, Run, Train and Test your model
 Follow [***tf-faster-rcnn***](https://github.com/endernewton/tf-faster-rcnn) instruction to train your model
 
 ## Setting 
