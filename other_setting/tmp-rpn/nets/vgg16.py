@@ -217,7 +217,7 @@ class vgg16(Network):
       rpn1_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn1_cls_score_scale')
       rpn0_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn0_cls_score_scale')
 
-      rpn_cls_score = rpn3_cls_score*rpn3_cls_score_scale*0.25 + rpn2_cls_score*rpn2_cls_score_scale*0.25 + rpn1_cls_score*rpn1_cls_score_scale*0.25 + rpn0_cls_score*rpn0_cls_score_scale*0.25
+      rpn_cls_score = rpn3_cls_score*rpn3_cls_score_scale*0.1 + rpn2_cls_score*rpn2_cls_score_scale*0.2 + rpn1_cls_score*rpn1_cls_score_scale*0.3 + rpn0_cls_score*rpn0_cls_score_scale*0.5
     
 
       #used added up score

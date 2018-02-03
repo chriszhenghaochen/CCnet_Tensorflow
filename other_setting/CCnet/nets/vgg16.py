@@ -255,14 +255,14 @@ class vgg16(Network):
       self._predictions["rpn0_cls_score_reshape"] = rpn0_cls_score_reshape
 
       # I find setting up this learnable scale is useless, but you can still have a try
-      # rpn3_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn3_cls_score_scale')
-      # rpn2_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn2_cls_score_scale')
-      # rpn1_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn1_cls_score_scale')
-      # rpn0_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn0_cls_score_scale')
+      rpn3_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn3_cls_score_scale')
+      rpn2_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn2_cls_score_scale')
+      rpn1_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn1_cls_score_scale')
+      rpn0_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn0_cls_score_scale')
 
       # rpn_cls_score = rpn3_cls_score*rpn3_cls_score_scale*0.25 + rpn2_cls_score*rpn2_cls_score_scale*0.25 + rpn1_cls_score*rpn1_cls_score_scale*0.25 + rpn0_cls_score*rpn0_cls_score_scale*0.25
 
-      rpn_cls_score = rpn3_cls_score*0.25 + rpn2_cls_score*0.25 + rpn1_cls_score*0.25 + rpn0_cls_score*0.25
+      rpn_cls_score = rpn3_cls_score*rpn3_cls_score_scale*0.1 + rpn2_cls_score*rpn2_cls_score_scale*0.2 + rpn1_cls_score*rpn1_cls_score_scale*0.3+ rpn0_cls_score*rpn1_cls_score_scale*0.4
 
       #used added up score
       rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape')
@@ -505,14 +505,14 @@ class vgg16(Network):
       self._predictions["cls0_score"] = cls0_score
 
       # I find seeting up this learnable scale is useless, you can still have train if you want to
-      # cls3_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls3_score_scale')
-      # cls2_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls2_score_scale')
-      # cls1_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls1_score_scale')
-      # cls0_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls0_score_scale')
+      cls3_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls3_score_scale')
+      cls2_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls2_score_scale')
+      cls1_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls1_score_scale')
+      cls0_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls0_score_scale')
 
-      # cls_score = cls3_score*cls3_score_scale*0.25 + cls4_score*cls2_score_scale*0.25 + cls5_score*cls1_score_scale*0.25 + cls0_score*cls0_score_scale*0.25
+      cls_score = cls3_score*cls3_score_scale*0.1 + cls4_score*cls2_score_scale*0.2 + cls5_score*cls1_score_scale*0.3 + cls0_score*cls0_score_scale*0.4
 
-      cls_score = cls3_score*0.25 + cls4_score*0.25 + cls5_score*0.25 + cls0_score*0.25
+      # cls_score = cls3_score*0.25 + cls4_score*0.25 + cls5_score*0.25 + cls0_score*0.25
 
       cls_prob = self._softmax_layer(cls_score, "cls_prob")
       bbox_pred = slim.fully_connected(fc7, self._num_classes * 4, 
