@@ -255,14 +255,14 @@ class vgg16(Network):
       self._predictions["rpn0_cls_score_reshape"] = rpn0_cls_score_reshape
 
       # I find setting up this learnable scale is useless, but you can still have a try
-      # rpn3_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn3_cls_score_scale')
+      #rpn3_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn3_cls_score_scale')
       rpn2_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn2_cls_score_scale')
       rpn1_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn1_cls_score_scale')
       rpn0_cls_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'rpn0_cls_score_scale')
 
-      rpn_cls_score = rpn2_cls_score*rpn2_cls_score_scale*0.2 + rpn1_cls_score*rpn1_cls_score_scale*0.3 + rpn0_cls_score*rpn0_cls_score_scale*0.5
+      # rpn_cls_score = rpn3_cls_score*rpn3_cls_score_scale*0.25 + rpn2_cls_score*rpn2_cls_score_scale*0.25 + rpn1_cls_score*rpn1_cls_score_scale*0.25 + rpn0_cls_score*rpn0_cls_score_scale*0.25
 
-      #rpn_cls_score = rpn2_cls_score*0.25 + rpn1_cls_score*0.25 + rpn0_cls_score*0.25
+      rpn_cls_score = rpn2_cls_score*rpn2_cls_score_scale*0.2 + rpn1_cls_score*rpn1_cls_score_scale*0.3+ rpn0_cls_score*rpn1_cls_score_scale*0.5
 
       #used added up score
       rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape')
@@ -301,7 +301,7 @@ class vgg16(Network):
       #############################################################RCNN START###############################################################
 
 
-      #------------------------------------------------------rcnn 3----------------------------------------------------#
+      ##------------------------------------------------------rcnn 3----------------------------------------------------#
       ## rcnn
       ## generate target
       #if is_training:          
@@ -329,9 +329,9 @@ class vgg16(Network):
 
       #cls3_score = slim.fully_connected(fc_combine3_2, self._num_classes, 
       #                                 weights_initializer=initializer,
-      #                                 trainable=is_training,
+      ##                                 trainable=is_training,
       #                                 activation_fn=None, scope='cls3_score')
-      ##store RCNN3
+      #store RCNN3
       #self._predictions["cls3_score"] = cls3_score
 
       #cls3_prob = self._softmax_layer(cls3_score, "cls3_prob")
@@ -343,7 +343,7 @@ class vgg16(Network):
       #cls3_score = tf.gather(cls3_score, tf.reshape(cls3_inds_1,[-1]))
 
       ##reject via factor
-      #_, cls3_inds_2 = tf.nn.top_k(cls3_score[:,0], tf.cast(tf.cast(tf.shape(cls3_score)[0], tf.float32)*tf.cast((1-reject3_f), tf.float32), tf.int32))
+      #_, cls3_inds_2 = tf.nn.top_k(cls3_score[:,0]*-1, tf.cast(tf.cast(tf.shape(cls3_score)[0], tf.float32)*tf.cast((1-reject3_f), tf.float32), tf.int32))
       #rois = tf.gather(rois, tf.reshape(cls3_inds_2,[-1]))
       #fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(cls3_inds_2,[-1]))
       #cls3_score = tf.gather(cls3_score, tf.reshape(cls3_inds_2,[-1]))
@@ -398,14 +398,14 @@ class vgg16(Network):
       cls4_inds_1 = tf.reshape(tf.where(tf.less(cls4_prob[:,0], reject2)), [-1])
       rois = tf.gather(rois, tf.reshape(cls4_inds_1,[-1]))
       fc_combine4_2 = tf.gather(fc_combine4_2, tf.reshape(cls4_inds_1,[-1]))
-      cls4_score = tf.gather(cls4_score, tf.reshape(cls4_inds_1,[-1]))
+      #cls4_score = tf.gather(cls4_score, tf.reshape(cls4_inds_1,[-1]))
       #cls3_score = tf.gather(cls3_score, tf.reshape(cls4_inds_1,[-1]))
 
       #reject via factor
-      _, cls4_inds_2 = tf.nn.top_k(cls4_score[:,0], tf.cast(tf.cast(tf.shape(cls4_score)[0], tf.float32)*tf.cast((1-reject2_f), tf.float32), tf.int32))
+      _, cls4_inds_2 = tf.nn.top_k(cls4_score[:,0]*-1, tf.cast(tf.cast(tf.shape(cls4_score)[0], tf.float32)*tf.cast((1-reject2_f), tf.float32), tf.int32))
       rois = tf.gather(rois, tf.reshape(cls4_inds_2,[-1]))
       fc_combine4_2 = tf.gather(fc_combine4_2, tf.reshape(cls4_inds_2,[-1]))
-      cls4_score = tf.gather(cls4_score, tf.reshape(cls4_inds_2,[-1]))
+      #cls4_score = tf.gather(cls4_score, tf.reshape(cls4_inds_2,[-1]))
       #cls3_score = tf.gather(cls3_score, tf.reshape(cls4_inds_2,[-1]))
 
 
@@ -432,7 +432,7 @@ class vgg16(Network):
       pool51_avg = slim.avg_pool2d(pool51_conv, [7, 7], padding='SAME', scope='pool51_avg', stride = 1) 
       pool51_flat = slim.flatten(pool51_avg, scope='flatten51') 
 
-      fc5_2 = slim.fully_connected(pool51_flat, 512, scope='fc5_2', weights_initializer=tf.contrib.layers.xavier_initializer(), trainable=is_training)
+      fc5_2 = slim.fully_connected(pool51_flat, 512, scope='fcs5_2', weights_initializer=tf.contrib.layers.xavier_initializer(), trainable=is_training)
       
       # if is_training:
       #   fc5_2 = slim.dropout(fc5_2, keep_prob=0.5, is_training=True, scope='fc5_2')
@@ -463,7 +463,7 @@ class vgg16(Network):
       #cls3_score = tf.gather(cls3_score, tf.reshape(cls5_inds_1,[-1]))
 
       #reject via factor
-      _, cls5_inds_2 = tf.nn.top_k(cls5_score[:,0], tf.cast(tf.cast(tf.shape(cls5_score)[0], tf.float32)*tf.cast((1-reject1_f), tf.float32), tf.int32))
+      _, cls5_inds_2 = tf.nn.top_k(cls5_score[:,0]*-1, tf.cast(tf.cast(tf.shape(cls5_score)[0], tf.float32)*tf.cast((1-reject1_f), tf.float32), tf.int32))
       rois = tf.gather(rois, tf.reshape(cls5_inds_2,[-1]))
       cls5_score = tf.gather(cls5_score, tf.reshape(cls5_inds_2,[-1]))
       cls4_score = tf.gather(cls4_score, tf.reshape(cls5_inds_2,[-1]))

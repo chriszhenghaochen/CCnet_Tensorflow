@@ -544,7 +544,7 @@ class Network(object):
       label3 = tf.reshape(self._proposal_targets["rpn3_rois_labels"], [-1])
 
       if repeat:
-        cls_score3, label3 = self.repeat(cls_score3, label3, batch3, True)
+        cls3_score, label3 = self.repeat(cls3_score, label3, batch3, True)
 
       cross_entropy3 = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -556,7 +556,7 @@ class Network(object):
       label2 = tf.reshape(self._proposal_targets["rpn2_rois_labels"], [-1])
 
       if repeat:
-        cls_score2, label2 = self.repeat(cls_score2, label2, batch2, True)
+        cls2_score, label2 = self.repeat(cls2_score, label2, batch2, True)
 
       cross_entropy2 = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -568,7 +568,7 @@ class Network(object):
       label1 = tf.reshape(self._proposal_targets["rpn1_rois_labels"], [-1])
 
       if repeat:
-        cls_score1, label1 = self.repeat(cls_score1, label1, batch1, True)
+        cls1_score, label1 = self.repeat(cls1_score, label1, batch1, True)
 
       cross_entropy1 = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -627,7 +627,7 @@ class Network(object):
 
 
       #total loss
-      loss = cross_entropy + cross_entropy0*0.1 + loss_box + rpn_cross_entropy + rpn0_cross_entropy*0.1 + rpn_loss_box + cross_entropy1*0.01 + cross_entropy2*0.001 + cross_entropy3*0.0001 + rpn1_cross_entropy*0.01 + rpn2_cross_entropy*0.001 + rpn3_cross_entropy*0.0001
+      loss = cross_entropy + cross_entropy0*0.01 + loss_box + rpn_cross_entropy + rpn0_cross_entropy*0.01 + rpn_loss_box + cross_entropy1*0.001 + cross_entropy2*0.0001 + cross_entropy3*0.00001 + rpn1_cross_entropy*0.001 + rpn2_cross_entropy*0.0001 + rpn3_cross_entropy*0.00001
 
 
       self._losses['total_loss'] = loss

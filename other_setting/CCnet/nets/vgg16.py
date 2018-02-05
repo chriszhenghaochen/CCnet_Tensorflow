@@ -343,7 +343,7 @@ class vgg16(Network):
       cls3_score = tf.gather(cls3_score, tf.reshape(cls3_inds_1,[-1]))
 
       #reject via factor
-      _, cls3_inds_2 = tf.nn.top_k(cls3_score[:,0], tf.cast(tf.cast(tf.shape(cls3_score)[0], tf.float32)*tf.cast((1-reject3_f), tf.float32), tf.int32))
+      _, cls3_inds_2 = tf.nn.top_k(cls3_score[:,0]*-1, tf.cast(tf.cast(tf.shape(cls3_score)[0], tf.float32)*tf.cast((1-reject3_f), tf.float32), tf.int32))
       rois = tf.gather(rois, tf.reshape(cls3_inds_2,[-1]))
       fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(cls3_inds_2,[-1]))
       cls3_score = tf.gather(cls3_score, tf.reshape(cls3_inds_2,[-1]))
