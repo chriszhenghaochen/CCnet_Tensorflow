@@ -116,7 +116,7 @@ class vgg16(Network):
 
       ###############################################RPN START####################################################################
       #-----------------------------------------------rpn 3------------------------------------------------------------#
-      conv3_resize = slim.avg_pool2d(self.endpoint['conv4_2'], [2, 2], padding='SAME', scope='conv3_resize')
+      conv3_resize = self._resize_map(self.endpoint['conv4_2'], self.endpoint['conv5_2'], "conv3_resize")
 
       # rpn 3
       rpn3 = slim.conv2d(conv3_resize, 512, [3, 3], trainable=is_training, weights_initializer=initializer, scope="rpn3_conv/3x3")
@@ -150,7 +150,7 @@ class vgg16(Network):
       self._predictions["rpn3_cls_score_reshape"] = rpn3_cls_score_reshape
 
       #-----------------------------------------------rpn 2------------------------------------------------------------##
-      conv4_resize = slim.avg_pool2d(self.endpoint['conv4_3'], [2, 2], padding='SAME', scope='conv4_3_resize')
+      conv4_resize = self._resize_map(self.endpoint['conv4_3'], self.endpoint['conv5_2'], "conv4_resize")
       rpn2 = slim.conv2d(conv4_resize, 512, [3, 3], trainable=is_training, weights_initializer=initializer, scope="rpn2_conv/3x3")
 
       #combine
@@ -309,13 +309,13 @@ class vgg16(Network):
           rois, _, passinds3 = self._proposal_target_layer(rois, roi_scores, "rpn3_rois", batch3)
 
       if cfg.POOLING_MODE == 'crop':
-        pool31 = self._crop_pool_layer(conv3_resize, rois, "pool31")
+        pool31 = self._crop_pool_layer(self.endpoint['conv4_2'], rois, 8, 14, "pool31")
       else:
         raise NotImplementedError
 
 
       pool31_conv = slim.conv2d(pool31, 256, [1, 1], trainable=is_training, weights_initializer=initializer, scope="pool31_conv")
-      pool31_avg = slim.avg_pool2d(pool31_conv, [7, 7], padding='SAME', scope='pool31_avg', stride = 1) 
+      pool31_avg = slim.avg_pool2d(pool31_conv, [14, 14], padding='SAME', scope='pool31_avg', stride = 1) 
       pool31_flat = slim.flatten(pool31_avg, scope='flatten31') 
 
       fc3_2 = slim.fully_connected(pool31_flat, 512, scope='fc3_2', weights_initializer=tf.contrib.layers.xavier_initializer(), trainable=is_training)
@@ -348,7 +348,7 @@ class vgg16(Network):
       fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(cls3_inds_2,[-1]))
       cls3_score = tf.gather(cls3_score, tf.reshape(cls3_inds_2,[-1]))
 
-      self._act_summaries.append(conv3_resize)
+      self._act_summaries.append(self.endpoint['conv4_2'])
       
       #------------------------------------------------------rcnn 2----------------------------------------------------#
       #generate target
@@ -361,13 +361,13 @@ class vgg16(Network):
           fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(passinds4,[-1]))
 
       if cfg.POOLING_MODE == 'crop':
-        pool41 = self._crop_pool_layer(conv4_resize, rois, "pool41")
+        pool41 = self._crop_pool_layer(self.endpoint['conv4_3'], rois, 8, 14, "pool41")
       else:
         raise NotImplementedError
 
 
       pool41_conv = slim.conv2d(pool41, 256, [1, 1], trainable=is_training, weights_initializer=initializer, scope="pool41_conv")
-      pool41_avg = slim.avg_pool2d(pool41_conv, [7, 7], padding='SAME', scope='pool41_avg', stride = 1) 
+      pool41_avg = slim.avg_pool2d(pool41_conv, [14, 14], padding='SAME', scope='pool41_avg', stride = 1) 
       pool41_flat = slim.flatten(pool41_avg, scope='flatten41') 
 
       fc4_2 = slim.fully_connected(pool41_flat, 512, scope='fc4_2', weights_initializer=tf.contrib.layers.xavier_initializer(), trainable=is_training)
@@ -409,7 +409,7 @@ class vgg16(Network):
       cls3_score = tf.gather(cls3_score, tf.reshape(cls4_inds_2,[-1]))
 
 
-      self._act_summaries.append(conv4_resize)
+      self._act_summaries.append(self.endpoint['conv4_3'])
 
       # #---------------------------------------------------------rcnn 1---------------------------------------------------------------#
       #generate target
@@ -423,12 +423,12 @@ class vgg16(Network):
           fc_combine4_2 = tf.gather(fc_combine4_2, tf.reshape(passinds5,[-1]))
 
       if cfg.POOLING_MODE == 'crop':
-        pool51 = self._crop_pool_layer(self.endpoint['conv5_2'], rois, "pool51")
+        pool51 = self._crop_pool_layer(self.endpoint['conv5_2'], rois, 16, 7, "pool51")
       else:
         raise NotImplementedError
 
 
-      pool51_conv = slim.conv2d(pool51, 512, [1, 1], trainable=is_training, weights_initializer=initializer, scope="pool51_conv")
+      pool51_conv = slim.conv2d(pool51, 256, [1, 1], trainable=is_training, weights_initializer=initializer, scope="pool51_conv")
       pool51_avg = slim.avg_pool2d(pool51_conv, [7, 7], padding='SAME', scope='pool51_avg', stride = 1) 
       pool51_flat = slim.flatten(pool51_avg, scope='flatten51') 
 
@@ -483,7 +483,7 @@ class vgg16(Network):
           cls3_score = tf.gather(cls3_score, tf.reshape(passinds,[-1]))
 
       if cfg.POOLING_MODE == 'crop':
-        pool5 = self._crop_pool_layer(self.endpoint['conv5_3'], rois, "pool5")
+        pool5 = self._crop_pool_layer(self.endpoint['conv5_3'], rois, 16, 7, "pool5")
         self.endpoint['pool5'] = pool5
       else:
         raise NotImplementedError
