@@ -116,7 +116,7 @@ class vgg16(Network):
 
       ###############################################RPN START####################################################################
       #-----------------------------------------------rpn 3------------------------------------------------------------#
-      conv3_resize = slim.avg_pool2d(self.endpoint['conv4_2'], [2, 2], padding='SAME', scope='conv3_resize')
+      conv3_resize = self._resize_map(self.endpoint['conv4_2'], self.endpoint['conv5_2'], "conv3_resize")
 
 
       # rpn 3
@@ -151,7 +151,7 @@ class vgg16(Network):
       self._predictions["rpn3_cls_score_reshape"] = rpn3_cls_score_reshape
 
       #-----------------------------------------------rpn 2------------------------------------------------------------##
-      conv4_resize = slim.avg_pool2d(self.endpoint['conv4_3'], [2, 2], padding='SAME', scope='conv3_resize')
+      conv4_resize = self._resize_map(self.endpoint['conv4_3'], self.endpoint['conv5_2'], "conv3_resize")
 
       rpn2 = slim.conv2d(conv4_resize, 512, [3, 3], trainable=is_training, weights_initializer=initializer, scope="rpn2_conv/3x3")
 
