@@ -161,9 +161,14 @@ class vgg16(Network):
       #------------------------------------------------------rcnn 3----------------------------------------------------#
       # rcnn
       # generate target
-      #if is_training:          
+      # if is_training:          
       #  with tf.control_dependencies([rpn_labels]):
       #    rois, _, passinds3 = self._proposal_target_layer(rois, roi_scores, "rpn3_rois", batch3)
+
+      # tmp method
+      if is_training:          
+       with tf.control_dependencies([rpn_labels]):
+         rois, _, passinds3 = self._proposal_target_layer(rois, roi_scores, "rpn_rois", batch)
 
       if cfg.POOLING_MODE == 'crop':
         pool31 = self._crop_pool_layer(self.endpoint['conv3_3'], rois, 16, 14, "pool31")
@@ -193,29 +198,30 @@ class vgg16(Network):
 
       cls3_prob = self._softmax_layer(cls3_score, "cls3_prob")
 
-      #reject via threshold
-      cls3_inds_1 = tf.reshape(tf.where(tf.less(cls3_prob[:,0], reject3)), [-1])
-      rois = tf.gather(rois, tf.reshape(cls3_inds_1,[-1]))
-      fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(cls3_inds_1,[-1]))
-      cls3_score = tf.gather(cls3_score, tf.reshape(cls3_inds_1,[-1]))
+      # reject method disable now
+      # #reject via threshold
+      # cls3_inds_1 = tf.reshape(tf.where(tf.less(cls3_prob[:,0], reject3)), [-1])
+      # rois = tf.gather(rois, tf.reshape(cls3_inds_1,[-1]))
+      # fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(cls3_inds_1,[-1]))
+      # cls3_score = tf.gather(cls3_score, tf.reshape(cls3_inds_1,[-1]))
 
-      #reject via factor
-      _, cls3_inds_2 = tf.nn.top_k(cls3_score[:,0]*-1, tf.cast(tf.cast(tf.shape(cls3_score)[0], tf.float32)*tf.cast((1-reject3_f), tf.float32), tf.int32))
-      rois = tf.gather(rois, tf.reshape(cls3_inds_2,[-1]))
-      fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(cls3_inds_2,[-1]))
-      cls3_score = tf.gather(cls3_score, tf.reshape(cls3_inds_2,[-1]))
+      # #reject via factor
+      # _, cls3_inds_2 = tf.nn.top_k(cls3_score[:,0]*-1, tf.cast(tf.cast(tf.shape(cls3_score)[0], tf.float32)*tf.cast((1-reject3_f), tf.float32), tf.int32))
+      # rois = tf.gather(rois, tf.reshape(cls3_inds_2,[-1]))
+      # fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(cls3_inds_2,[-1]))
+      # cls3_score = tf.gather(cls3_score, tf.reshape(cls3_inds_2,[-1]))
 
       #self._act_summaries.append(self.endpoint['conv4_2'])
       
       #------------------------------------------------------rcnn 2----------------------------------------------------#
-      #generate target
-      if is_training:          
-        with tf.control_dependencies([rpn_labels]):
-          roi_scores = tf.gather(roi_scores, tf.reshape(cls3_inds_1,[-1]))
-          roi_scores = tf.gather(roi_scores, tf.reshape(cls3_inds_2,[-1]))
-      #    rois, _, passinds4 = self._proposal_target_layer(rois, roi_scores, "rpn2_rois", batch2)
-      #    cls3_score = tf.gather(cls3_score, tf.reshape(passinds4,[-1]))
-      #    fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(passinds4,[-1]))
+      # generate target
+      # if is_training:          
+      #   with tf.control_dependencies([rpn_labels]):
+      #     roi_scores = tf.gather(roi_scores, tf.reshape(cls3_inds_1,[-1]))
+      #     roi_scores = tf.gather(roi_scores, tf.reshape(cls3_inds_2,[-1]))
+      #     rois, _, passinds4 = self._proposal_target_layer(rois, roi_scores, "rpn2_rois", batch2)
+      #     cls3_score = tf.gather(cls3_score, tf.reshape(passinds4,[-1]))
+      #     fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(passinds4,[-1]))
 
       if cfg.POOLING_MODE == 'crop':
         pool41 = self._crop_pool_layer(self.endpoint['conv4_3'], rois, 8, 14, "pool41")
@@ -250,30 +256,30 @@ class vgg16(Network):
 
       cls4_prob = self._softmax_layer(cls4_score, "cls4_prob")
 
+      #reject method disable now
+      # #reject via threshold
+      # cls4_inds_1 = tf.reshape(tf.where(tf.less(cls4_prob[:,0], reject2)), [-1])
+      # rois = tf.gather(rois, tf.reshape(cls4_inds_1,[-1]))
+      # fc_combine4_2 = tf.gather(fc_combine4_2, tf.reshape(cls4_inds_1,[-1]))
+      # cls4_score = tf.gather(cls4_score, tf.reshape(cls4_inds_1,[-1]))
+      # cls3_score = tf.gather(cls3_score, tf.reshape(cls4_inds_1,[-1]))
 
-      #reject via threshold
-      cls4_inds_1 = tf.reshape(tf.where(tf.less(cls4_prob[:,0], reject2)), [-1])
-      rois = tf.gather(rois, tf.reshape(cls4_inds_1,[-1]))
-      fc_combine4_2 = tf.gather(fc_combine4_2, tf.reshape(cls4_inds_1,[-1]))
-      cls4_score = tf.gather(cls4_score, tf.reshape(cls4_inds_1,[-1]))
-      cls3_score = tf.gather(cls3_score, tf.reshape(cls4_inds_1,[-1]))
-
-      #reject via factor
-      _, cls4_inds_2 = tf.nn.top_k(cls4_score[:,0], tf.cast(tf.cast(tf.shape(cls4_score)[0], tf.float32)*tf.cast((1-reject2_f), tf.float32), tf.int32))
-      rois = tf.gather(rois, tf.reshape(cls4_inds_2,[-1]))
-      fc_combine4_2 = tf.gather(fc_combine4_2, tf.reshape(cls4_inds_2,[-1]))
-      cls4_score = tf.gather(cls4_score, tf.reshape(cls4_inds_2,[-1]))
-      cls3_score = tf.gather(cls3_score, tf.reshape(cls4_inds_2,[-1]))
+      # #reject via factor
+      # _, cls4_inds_2 = tf.nn.top_k(cls4_score[:,0], tf.cast(tf.cast(tf.shape(cls4_score)[0], tf.float32)*tf.cast((1-reject2_f), tf.float32), tf.int32))
+      # rois = tf.gather(rois, tf.reshape(cls4_inds_2,[-1]))
+      # fc_combine4_2 = tf.gather(fc_combine4_2, tf.reshape(cls4_inds_2,[-1]))
+      # cls4_score = tf.gather(cls4_score, tf.reshape(cls4_inds_2,[-1]))
+      # cls3_score = tf.gather(cls3_score, tf.reshape(cls4_inds_2,[-1]))
 
 
       #self._act_summaries.append(self.endpoint['conv4_3'])
 
       # #---------------------------------------------------------rcnn 1---------------------------------------------------------------#
       #generate target
-      if is_training:          
-        with tf.control_dependencies([rpn_labels]):
-          roi_scores = tf.gather(roi_scores, tf.reshape(cls4_inds_1,[-1]))
-          roi_scores = tf.gather(roi_scores, tf.reshape(cls4_inds_2,[-1]))
+      #if is_training:          
+      #  with tf.control_dependencies([rpn_labels]):
+      #    roi_scores = tf.gather(roi_scores, tf.reshape(cls4_inds_1,[-1]))
+      #    roi_scores = tf.gather(roi_scores, tf.reshape(cls4_inds_2,[-1]))
       #    rois, _, passinds5 = self._proposal_target_layer(rois, roi_scores, "rpn1_rois", batch1)
       #    cls4_score = tf.gather(cls4_score, tf.reshape(passinds5,[-1]))
       #    cls3_score = tf.gather(cls3_score, tf.reshape(passinds5,[-1]))
@@ -312,32 +318,33 @@ class vgg16(Network):
 
       cls5_prob = self._softmax_layer(cls5_score, "cls5_prob")
 
-      #reject via threshold
-      cls5_inds_1 = tf.reshape(tf.where(tf.less(cls5_prob[:,0], reject1)), [-1])
-      rois = tf.gather(rois, tf.reshape(cls5_inds_1,[-1]))
-      cls5_score = tf.gather(cls5_score, tf.reshape(cls5_inds_1,[-1]))
-      cls4_score = tf.gather(cls4_score, tf.reshape(cls5_inds_1,[-1]))
-      cls3_score = tf.gather(cls3_score, tf.reshape(cls5_inds_1,[-1]))
+      # reject method disable now
+      # #reject via threshold
+      # cls5_inds_1 = tf.reshape(tf.where(tf.less(cls5_prob[:,0], reject1)), [-1])
+      # rois = tf.gather(rois, tf.reshape(cls5_inds_1,[-1]))
+      # cls5_score = tf.gather(cls5_score, tf.reshape(cls5_inds_1,[-1]))
+      # cls4_score = tf.gather(cls4_score, tf.reshape(cls5_inds_1,[-1]))
+      # cls3_score = tf.gather(cls3_score, tf.reshape(cls5_inds_1,[-1]))
 
-      #reject via factor
-      _, cls5_inds_2 = tf.nn.top_k(cls5_score[:,0], tf.cast(tf.cast(tf.shape(cls5_score)[0], tf.float32)*tf.cast((1-reject1_f), tf.float32), tf.int32))
-      rois = tf.gather(rois, tf.reshape(cls5_inds_2,[-1]))
-      cls5_score = tf.gather(cls5_score, tf.reshape(cls5_inds_2,[-1]))
-      cls4_score = tf.gather(cls4_score, tf.reshape(cls5_inds_2,[-1]))
-      cls3_score = tf.gather(cls3_score, tf.reshape(cls5_inds_2,[-1]))
+      # #reject via factor
+      # _, cls5_inds_2 = tf.nn.top_k(cls5_score[:,0], tf.cast(tf.cast(tf.shape(cls5_score)[0], tf.float32)*tf.cast((1-reject1_f), tf.float32), tf.int32))
+      # rois = tf.gather(rois, tf.reshape(cls5_inds_2,[-1]))
+      # cls5_score = tf.gather(cls5_score, tf.reshape(cls5_inds_2,[-1]))
+      # cls4_score = tf.gather(cls4_score, tf.reshape(cls5_inds_2,[-1]))
+      # cls3_score = tf.gather(cls3_score, tf.reshape(cls5_inds_2,[-1]))
 
       #self._act_summaries.append(self.endpoint['conv5_2'])
 
       #-------------------------------------------------------rcnn -------------------------------------------------------#
       #generate target
-      if is_training:             
-        with tf.control_dependencies([rpn_labels]):
-          roi_scores = tf.gather(roi_scores, tf.reshape(cls5_inds_1,[-1])) 
-          roi_scores = tf.gather(roi_scores, tf.reshape(cls5_inds_2,[-1])) 
-          rois, _, passinds = self._proposal_target_layer(rois, roi_scores, "rpn_rois", batch)
-          cls5_score = tf.gather(cls5_score, tf.reshape(passinds,[-1]))
-          cls4_score = tf.gather(cls4_score, tf.reshape(passinds,[-1]))
-          cls3_score = tf.gather(cls3_score, tf.reshape(passinds,[-1]))
+      # if is_training:             
+      #   with tf.control_dependencies([rpn_labels]):
+      #     roi_scores = tf.gather(roi_scores, tf.reshape(cls5_inds_1,[-1])) 
+      #     roi_scores = tf.gather(roi_scores, tf.reshape(cls5_inds_2,[-1])) 
+      #     rois, _, passinds = self._proposal_target_layer(rois, roi_scores, "rpn_rois", batch)
+      #     cls5_score = tf.gather(cls5_score, tf.reshape(passinds,[-1]))
+      #     cls4_score = tf.gather(cls4_score, tf.reshape(passinds,[-1]))
+      #     cls3_score = tf.gather(cls3_score, tf.reshape(passinds,[-1]))
 
       if cfg.POOLING_MODE == 'crop':
         pool5 = self._crop_pool_layer(self.endpoint['conv5_3'], rois, 16, 7, "pool5")
