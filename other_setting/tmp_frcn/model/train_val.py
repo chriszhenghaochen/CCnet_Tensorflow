@@ -94,9 +94,9 @@ class SolverWrapper(object):
     # Build data layers for both training and validation set
     self.data_layer = RoIDataLayer(self.roidb, self.imdb.num_classes)
     self.data_layer_val = RoIDataLayer(self.valroidb, self.imdb.num_classes, random=True)
+
     # Determine different scales for anchors, see paper
     with sess.graph.as_default():
-      print('Cascade Chain Networks Training Starts')
       # Set the random seed for tensorflow
       tf.set_random_seed(cfg.RNG_SEED)
       # Build the main computation graph
@@ -219,16 +219,6 @@ class SolverWrapper(object):
       blobs = self.data_layer.forward()
 
       now = time.time()
-
-      # #debug session
-      #a,b,c,d  = self.net.DEBUG(sess, blobs)
-      #print('height ', a)
-      #print('width ',b)
-      #print('rois ', d)
-      #print('crops ',c)
-
-
-
       if now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
         # Compute the graph with summary
         rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
@@ -245,10 +235,10 @@ class SolverWrapper(object):
           self.net.train_step(sess, blobs, train_op)
       timer.toc()
 
-      # Display training informations
+      # Display training information
       if iter % (cfg.TRAIN.DISPLAY) == 0:
-        print('iter: %d / %d, total loss: %.6f\n'
-              ' >>> rpn_loss_cls: %.6f\n >>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
+        print('iter: %d / %d, total loss: %.6f\n >>> rpn_loss_cls: %.6f\n '
+              '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
               (iter, max_iters, total_loss, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
         print('speed: {:.3f}s / iter'.format(timer.average_time))
 
