@@ -374,7 +374,7 @@ class vgg16(Network):
       cls1_score_scale = tf.Variable(tf.cast(0.5, tf.float32), trainable = is_training, name = 'cls1_score_scale')
       cls0_score_scale = tf.Variable(tf.cast(0.5, tf.float32), trainable = is_training, name = 'cls0_score_scale')
 
-      cls_score = cls3_score*cls3_score_scale + cls4_score*cls2_score_scale + cls5_score*cls1_score_scale + cls0_score*cls0_score_scal
+      cls_score = cls3_score*cls3_score_scale + cls4_score*cls2_score_scale + cls5_score*cls1_score_scale + cls0_score*cls0_score_scale
 
       # cls_score = cls3_score*0.25 + cls4_score*0.25 + cls5_score*0.25 + cls0_score*0.25
 
