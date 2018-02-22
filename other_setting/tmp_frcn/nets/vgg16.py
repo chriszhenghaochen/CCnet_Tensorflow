@@ -112,7 +112,7 @@ class vgg16(Network):
 
       rpn_cls_score = slim.conv2d(rpn, self._num_anchors * 2, [1, 1], trainable=is_training,
                                   weights_initializer=initializer,
-                                  padding='VALID', activation_fn=None, scope='rpn_cls_score')
+                                  padding='VALID', activation_fn=None, scope='rpn_cls_score_pre')
 
       rpn_bbox_pred = slim.conv2d(rpn, self._num_anchors * 4, [1, 1], trainable=is_training,
                                   weights_initializer=initializer,
@@ -374,7 +374,7 @@ class vgg16(Network):
       cls1_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls1_score_scale')
       cls0_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls0_score_scale')
 
-      cls_score = cls3_score*cls3_score_scale + cls4_score*cls2_score_scale + cls5_score*cls1_score_scale + cls0_score*cls0_score_scale
+      cls_score = cls3_score*cls3_score_scale*0.25 + cls4_score*cls2_score_scale*0.25 + cls5_score*cls1_score_scale*0.25 + cls0_score*cls0_score_scale*0.25
 
       # cls_score = cls3_score*0.25 + cls4_score*0.25 + cls5_score*0.25 + cls0_score*0.25
 

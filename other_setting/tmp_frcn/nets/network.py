@@ -407,6 +407,53 @@ class Network(object):
 
       #################################################RCNN####################################################
 
+      #-----------------------------RCNN3, class loss-----------------------------------#
+      #cls3_score = self._predictions["cls3_score"]
+      #label3 = tf.reshape(self._proposal_targets["rpn3_rois_labels"], [-1])
+
+      #if repeat:
+      #  cls3_score, label3 = self.repeat(cls3_score, label3, batch3, True)
+
+      #cross_entropy3 = tf.reduce_mean(
+      #  tf.nn.sparse_softmax_cross_entropy_with_logits(
+      #    logits=tf.reshape(cls3_score, [-1, self._num_classes]), labels=label3))
+
+
+      #-----------------------------RCNN2, class loss-----------------------------------#
+      #cls2_score = self._predictions["cls2_score"]
+      #label2 = tf.reshape(self._proposal_targets["rpn2_rois_labels"], [-1])
+
+      #if repeat:
+      #  cls2_score, label2 = self.repeat(cls2_score, label2, batch2, True)
+
+      #cross_entropy2 = tf.reduce_mean(
+      #  tf.nn.sparse_softmax_cross_entropy_with_logits(
+      #    logits=tf.reshape(cls2_score, [-1, self._num_classes]), labels=label2))
+
+
+      #-----------------------------RCNN1, class loss-----------------------------------#
+      #cls1_score = self._predictions["cls1_score"]
+      #label1 = tf.reshape(self._proposal_targets["rpn1_rois_labels"], [-1])
+
+      #if repeat:
+      #  cls1_score, label1 = self.repeat(cls1_score, label1, batch1, True)
+
+      #cross_entropy1 = tf.reduce_mean(
+      #  tf.nn.sparse_softmax_cross_entropy_with_logits(
+      #    logits=tf.reshape(cls1_score, [-1, self._num_classes]), labels=label1))
+
+
+      #-----------------------------RCNN1_1, class loss-----------------------------------#
+      #cls_score_0 = self._predictions["cls0_score"]
+      #label = tf.reshape(self._proposal_targets["rpn_rois_labels"], [-1])
+
+      #if repeat:
+      #  cls_score_0, label = self.repeat(cls_score_0, label, batch, True)
+
+      #cross_entropy0 = tf.reduce_mean(
+      #  tf.nn.sparse_softmax_cross_entropy_with_logits(
+      #    logits=tf.reshape(cls_score_0, [-1, self._num_classes]), labels=label))
+
 
       #-----------------------------RCNN, class loss-----------------------------------#
       cls_score = self._predictions["cls_score"]
@@ -511,6 +558,8 @@ class Network(object):
       for key, var in self._event_summaries.items():
         val_summaries.append(tf.summary.scalar(key, var))
       for key, var in self._score_summaries.items():
+        # print(key)
+        # print(var)
         self._add_score_summary(key, var)
       for var in self._act_summaries:
         self._add_act_summary(var)
@@ -557,27 +606,40 @@ class Network(object):
   def train_step(self, sess, blobs, train_op):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
-    rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([self._losses["rpn_cross_entropy"],
-                                                                        self._losses['rpn_loss_box'],
-                                                                        self._losses['cross_entropy'],
-                                                                        self._losses['loss_box'],
-                                                                        self._losses['total_loss'],
-                                                                        train_op],
-                                                                       feed_dict=feed_dict)
+    rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([
+                                                                                                                                                      #self._losses["cross_entropy3"],
+                                                                                                                                                      #self._losses["cross_entropy2"],
+                                                                                                                                                      #self._losses["cross_entropy1"],
+                                                                                                                                                      #self._losses['cross_entropy0'],
+                                                                                                                                                      self._losses["rpn_cross_entropy"],
+                                                                                                                                                      self._losses['rpn_loss_box'],
+                                                                                                                                                      self._losses['cross_entropy'],
+                                                                                                                                                      self._losses['loss_box'],
+                                                                                                                                                      self._losses['total_loss'],
+                                                                                                                                                      train_op],
+                                                                                                                                                      feed_dict=feed_dict)
     return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss
+
 
   def train_step_with_summary(self, sess, blobs, train_op):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
-    rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary, _ = sess.run([self._losses["rpn_cross_entropy"],
-                                                                                 self._losses['rpn_loss_box'],
-                                                                                 self._losses['cross_entropy'],
-                                                                                 self._losses['loss_box'],
-                                                                                 self._losses['total_loss'],
-                                                                                 self._summary_op,
-                                                                                 train_op],
-                                                                                feed_dict=feed_dict)
+
+    rpn_loss_box, loss_cls, loss_box, loss, summary, _ = sess.run([
+                                                                                                                                                               #self._losses["cross_entropy3"],
+                                                                                                                                                               #self._losses["cross_entropy2"],
+                                                                                                                                                               #self._losses["cross_entropy1"],
+                                                                                                                                                               #self._losses["cross_entropy0"],
+                                                                                                                                                               self._losses["rpn_cross_entropy"],
+                                                                                                                                                               self._losses['rpn_loss_box'],
+                                                                                                                                                               self._losses['cross_entropy'],
+                                                                                                                                                               self._losses['loss_box'],
+                                                                                                                                                               self._losses['total_loss'],
+                                                                                                                                                               self._summary_op,
+                                                                                                                                                               train_op],
+                                                                                                                                                               feed_dict=feed_dict)
     return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary
+
 
   def train_step_no_return(self, sess, blobs, train_op):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
