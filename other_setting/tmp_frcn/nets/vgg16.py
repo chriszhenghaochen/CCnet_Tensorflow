@@ -190,7 +190,7 @@ class vgg16(Network):
       fc_combine3_2 = tf.scalar_mul(scale3_2, fc3_2)
 
       cls3_score = slim.fully_connected(fc_combine3_2, self._num_classes, 
-                                       weights_initializer=initializer,
+                                       weights_initializer=tf.random_normal_initializer(mean=0.0, stddev=0.02),
                                        trainable=is_training,
                                        activation_fn=None, scope='cls3_score')
       #store RCNN3
@@ -246,7 +246,7 @@ class vgg16(Network):
       fc_combine4_2 = tf.scalar_mul(scale4_2, fc4_2)
 
       cls4_score = slim.fully_connected(fc_combine4_2, self._num_classes, 
-                                       weights_initializer=initializer,
+                                       weights_initializer=tf.random_normal_initializer(mean=0.0, stddev=0.02),
                                        trainable=is_training,
                                        activation_fn=None, scope='cls4_score')
 
@@ -308,7 +308,7 @@ class vgg16(Network):
       fc_combine5_2 = tf.scalar_mul(scale5_2, fc5_2)
 
       cls5_score = slim.fully_connected(fc_combine5_2, self._num_classes, 
-                                       weights_initializer=initializer,
+                                       weights_initializer=tf.random_normal_initializer(mean=0.0, stddev=0.02),
                                        trainable=is_training,
                                        activation_fn=None, scope='cls5_score')
 

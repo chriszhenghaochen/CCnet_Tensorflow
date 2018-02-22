@@ -257,7 +257,7 @@ class vgg16(Network):
 
       # rpn_cls_score = rpn3_cls_score*rpn3_cls_score_scale*0.25 + rpn2_cls_score*rpn2_cls_score_scale*0.25 + rpn1_cls_score*rpn1_cls_score_scale*0.25 + rpn0_cls_score*rpn0_cls_score_scale*0.25
 
-      rpn_cls_score = rpn3_cls_score*rpn3_cls_score_scale*0.25 + rpn2_cls_score*rpn2_cls_score_scale*0.25 + rpn1_cls_score*rpn1_cls_score_scale*0.25+ rpn0_cls_score*rpn1_cls_score_scale*0.25
+      rpn_cls_score = rpn3_cls_score*rpn3_cls_score_scale + rpn2_cls_score*rpn2_cls_score_scale + rpn1_cls_score*rpn1_cls_score_scale rpn0_cls_score*rpn1_cls_score_scale
 
       #used added up score
       rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape')
