@@ -171,7 +171,7 @@ class vgg16(Network):
          rois, _, passinds3 = self._proposal_target_layer(rois, roi_scores, "rpn_rois", batch)
 
       if cfg.POOLING_MODE == 'crop':
-        pool31 = self._crop_pool_layer(self.endpoint['conv3_3'], rois, 16, 14, "pool31")
+        pool31 = self._crop_pool_layer(self.endpoint['conv3_3'], rois, 4, 14, "pool31")
       else:
         raise NotImplementedError
 
