@@ -83,7 +83,7 @@ class SolverWrapper(object):
     try:
       reader = pywrap_tensorflow.NewCheckpointReader(file_name)
       var_to_shape_map = reader.get_variable_to_shape_map()
-      return var_to_shape_map 
+      return var_to_shape_map
     except Exception as e:  # pylint: disable=broad-except
       print(str(e))
       if "corrupted compressed block contents" in str(e):
@@ -95,6 +95,7 @@ class SolverWrapper(object):
     self.data_layer = RoIDataLayer(self.roidb, self.imdb.num_classes)
     self.data_layer_val = RoIDataLayer(self.valroidb, self.imdb.num_classes, random=True)
     # Determine different scales for anchors, see paper
+    print('start 1')
     with sess.graph.as_default():
       print('Cascade Chain Networks Training Starts')
       # Set the random seed for tensorflow
