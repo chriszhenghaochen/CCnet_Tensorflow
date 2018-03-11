@@ -180,18 +180,21 @@ class vgg16(Network):
       pool31_avg = slim.avg_pool2d(pool31_conv, [14, 14], padding='SAME', scope='pool31_avg', stride = 1)
       pool31_flat = slim.flatten(pool31_avg, scope='flatten31')
 
-      fc3_2 = slim.fully_connected(pool31_flat, 512, scope='fc3_2', activation_fn = None, weights_initializer=tf.contrib.layers.xavier_initializer(), trainable=is_training)
+      fc3_2 = slim.fully_connected(pool31_flat, 512, scope='fc3_2',  normalizer_fn=slim.batch_norm, trainable=is_training, biases_initializer = None, activation_fn = None)
 
+      # if is_training:
+      #   fc3_2 = slim.dropout(fc3_2, keep_prob=0.5, is_training=True, scope='fc3_2')
 
-      #combine -add
+      #combine
       scale3_2 = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'scale3_2')
-      fc3_2 = tf.scalar_mul(scale3_2, fc3_2)
+      fc_combine3_2 = tf.scalar_mul(scale3_2, fc3_2)
 
-      cls3_score = slim.fully_connected(fc3_2, self._num_classes,
-                                       weights_initializer=tf.random_normal_initializer(mean = 0.0, stddev = 0.02),
+      cls3_score = slim.fully_connected(fc_combine3_2, self._num_classes,
+                                       weights_initializer=tf.random_normal_initializer(mean=0.0, stddev=0.02),
+                                       biases_initializer = None,
                                        trainable=is_training,
                                        activation_fn=None, scope='cls3_score')
-      #store RCNN3
+      #store
       self._predictions["cls3_score"] = cls3_score
 
       cls3_prob = self._softmax_layer(cls3_score, "cls3_prob")
@@ -209,7 +212,7 @@ class vgg16(Network):
       # fc_combine3_2 = tf.gather(fc_combine3_2, tf.reshape(cls3_inds_2,[-1]))
       # cls3_score = tf.gather(cls3_score, tf.reshape(cls3_inds_2,[-1]))
 
-      self._act_summaries.append(self.endpoint['conv3_3'])
+      #self._act_summaries.append(self.endpoint['conv4_2'])
 
       #------------------------------------------------------rcnn 2----------------------------------------------------#
       # generate target
@@ -231,17 +234,21 @@ class vgg16(Network):
       pool41_avg = slim.avg_pool2d(pool41_conv, [14, 14], padding='SAME', scope='pool41_avg', stride = 1)
       pool41_flat = slim.flatten(pool41_avg, scope='flatten41')
 
-      fc4_2 = slim.fully_connected(pool41_flat, 512, scope='fc4_2', activation_fn = None, weights_initializer=tf.contrib.layers.xavier_initializer(), trainable=is_training)
+      fc4_2 = slim.fully_connected(pool41_flat, 512, scope='fc4_2', normalizer_fn = slim.batch_norm, trainable=is_training, biases_initializer = None, activation_fn = None)
 
-      fc_42_comb = tf.add(fc3_2*factor1, fc4_2*factor2, name = 'fc_42_comb')
+      # if is_training:
+      #   fc4_2 = slim.dropout(fc4_2, keep_prob=0.5, is_training=True, scope='fc4_2')
+
+      fc4_2 = self._score_add_up(fc_combine3_2, fc4_2, factor1, factor2, 'fc_42_comb')
 
       #combine
       scale4_2 = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'scale4_2')
 
-      fc_42_comb = tf.scalar_mul(scale4_2, fc_42_comb)
+      fc_combine4_2 = tf.scalar_mul(scale4_2, fc4_2)
 
-      cls4_score = slim.fully_connected(fc4_2, self._num_classes,
-                                       weights_initializer=tf.random_normal_initializer(mean = 0.0, stddev = 0.02),
+      cls4_score = slim.fully_connected(fc_combine4_2, self._num_classes,
+                                       weights_initializer=tf.random_normal_initializer(mean=0.0, stddev=0.02),
+                                       biases_initializer = None,
                                        trainable=is_training,
                                        activation_fn=None, scope='cls4_score')
 
@@ -267,7 +274,7 @@ class vgg16(Network):
       # cls3_score = tf.gather(cls3_score, tf.reshape(cls4_inds_2,[-1]))
 
 
-      self._act_summaries.append(self.endpoint['conv4_3'])
+      #self._act_summaries.append(self.endpoint['conv4_3'])
 
       # #---------------------------------------------------------rcnn 1---------------------------------------------------------------#
       #generate target
@@ -290,18 +297,22 @@ class vgg16(Network):
       pool51_avg = slim.avg_pool2d(pool51_conv, [7, 7], padding='SAME', scope='pool51_avg', stride = 1)
       pool51_flat = slim.flatten(pool51_avg, scope='flatten51')
 
-      fc5_2 = slim.fully_connected(pool51_flat, 512, scope='fc5_2', activation_fn = None, weights_initializer=tf.contrib.layers.xavier_initializer(), trainable=is_training)
+      fc5_2 = slim.fully_connected(pool51_flat, 512, scope='fc5_2', normalizer_fn = slim.batch_norm, trainable=is_training, biases_initializer = None, activation_fn = None)
 
-      fc_52_comb = tf.add(fc_42_comb*factor1, fc5_2*factor2, name = 'fc_52_comb')
+      # if is_training:
+      #   fc5_2 = slim.dropout(fc5_2, keep_prob=0.5, is_training=True, scope='fc5_2')
+
+      fc5_2 = self._score_add_up(fc_combine4_2, fc5_2, factor1, factor2, 'fc_52_comb')
 
       #combine
       scale5_2 = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'scale5_2')
 
-      fc_52_comb = tf.scalar_mul(scale5_2, fc_52_comb)
+      fc_combine5_2 = tf.scalar_mul(scale5_2, fc5_2)
 
-      cls5_score = slim.fully_connected(fc5_2, self._num_classes,
-                                       weights_initializer=tf.random_normal_initializer(mean = 0.0, stddev = 0.02),
+      cls5_score = slim.fully_connected(fc_combine5_2, self._num_classes,
+                                       weights_initializer=tf.random_normal_initializer(mean=0.0, stddev=0.02),
                                        trainable=is_training,
+                                       biases_initializer = None,
                                        activation_fn=None, scope='cls5_score')
 
 
@@ -325,7 +336,7 @@ class vgg16(Network):
       # cls4_score = tf.gather(cls4_score, tf.reshape(cls5_inds_2,[-1]))
       # cls3_score = tf.gather(cls3_score, tf.reshape(cls5_inds_2,[-1]))
 
-      self._act_summaries.append(self.endpoint['conv5_3'])
+      #self._act_summaries.append(self.endpoint['conv5_2'])
 
       #-------------------------------------------------------rcnn -------------------------------------------------------#
       #generate target
@@ -354,27 +365,27 @@ class vgg16(Network):
       if is_training:
         fc7 = slim.dropout(fc7, keep_prob=0.5, is_training=True, scope='dropout7')
       cls0_score = slim.fully_connected(fc7, self._num_classes,
-                                       weights_initializer=initializer,
+                                       #weights_initializer=initializer,
+                                       weights_initializer=tf.random_normal_initializer(mean=0.0, stddev=0.002),
+                                       biases_initializer = None,
                                        trainable=is_training,
-                                       activation_fn=None, scope='cls_score')
+                                       activation_fn=None, scope='cls0_score')
 
       self._predictions["cls0_score"] = cls0_score
 
       # I find seeting up this learnable scale is useless, you can still have train if you want to
-      cls3_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls3_score_scale')
-      cls2_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls2_score_scale')
-      cls1_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls1_score_scale')
-      cls0_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls0_score_scale')
+      cls3_score_scale = tf.Variable(tf.cast(0.25, tf.float32), trainable = is_training, name = 'cls3_score_scale')
+      cls2_score_scale = tf.Variable(tf.cast(0.25, tf.float32), trainable = is_training, name = 'cls2_score_scale')
+      cls1_score_scale = tf.Variable(tf.cast(0.25, tf.float32), trainable = is_training, name = 'cls1_score_scale')
+      cls0_score_scale = tf.Variable(tf.cast(0.25, tf.float32), trainable = is_training, name = 'cls0_score_scale')
 
-
-      cls_score = tf.add_n([cls3_score*cls3_score_scale*0.25, cls4_score*cls2_score_scale*0.25, cls5_score*cls1_score_scale*0.25, cls0_score*cls0_score_scale*0.25], name = 'final_cls_score')
-
+      cls_score = tf.add_n([tf.scalar_mul(cls3_score_scale, cls3_score), tf.scalar_mul(cls2_score_scale, cls4_score), tf.scalar_mul(cls1_score_scale, cls5_score), tf.scalar_mul(cls0_score_scale, cls0_score)],name = 'final_score')
 
       # cls_score = cls3_score*0.25 + cls4_score*0.25 + cls5_score*0.25 + cls0_score*0.25
 
       cls_prob = self._softmax_layer(cls_score, "cls_prob")
       bbox_pred = slim.fully_connected(fc7, self._num_classes * 4,
-                                       weights_initializer=initializer_bbox,
+                                       weights_initializer=initializer,
                                        trainable=is_training,
                                        activation_fn=None, scope='bbox_pred')
 

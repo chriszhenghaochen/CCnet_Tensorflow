@@ -361,13 +361,13 @@ class vgg16(Network):
       self._predictions["cls0_score"] = cls0_score
 
       # I find seeting up this learnable scale is useless, you can still have train if you want to
-      # cls3_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls3_score_scale')
-      # cls2_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls2_score_scale')
-      # cls1_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls1_score_scale')
-      # cls0_score_scale = tf.Variable(tf.cast(1, tf.float32), trainable = is_training, name = 'cls0_score_scale')
+      cls3_score_scale = tf.Variable(tf.cast(0.1, tf.float32), trainable = is_training, name = 'cls3_score_scale')
+      cls2_score_scale = tf.Variable(tf.cast(0.2, tf.float32), trainable = is_training, name = 'cls2_score_scale')
+      cls1_score_scale = tf.Variable(tf.cast(0.3, tf.float32), trainable = is_training, name = 'cls1_score_scale')
+      cls0_score_scale = tf.Variable(tf.cast(0.4, tf.float32), trainable = is_training, name = 'cls0_score_scale')
 
 
-      cls_score = tf.add_n([cls3_score*0.1, cls4_score*0.2, cls5_score*0.3, cls0_score*0.4], name = 'final_cls_score')
+      cls_score = tf.add_n([cls3_score*cls3_score_scale, cls4_score*cls2_score_scale, cls5_score*cls1_score_scale, cls0_score*cls0_score_scale], name = 'final_cls_score')
 
 
       # cls_score = cls3_score*0.25 + cls4_score*0.25 + cls5_score*0.25 + cls0_score*0.25
