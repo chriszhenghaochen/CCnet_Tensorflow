@@ -97,7 +97,7 @@ class SolverWrapper(object):
 
     # Determine different scales for anchors, see paper
     with sess.graph.as_default():
-      print('start training')
+      print('start training network')
       # Set the random seed for tensorflow
       tf.set_random_seed(cfg.RNG_SEED)
       # Build the main computation graph

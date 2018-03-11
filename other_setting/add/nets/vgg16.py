@@ -12,9 +12,12 @@ import tensorflow.contrib.slim as slim
 from tensorflow.contrib.slim import losses
 from tensorflow.contrib.slim import arg_scope
 import numpy as np
+from tensorflow.python.framework import ops
 
 from nets.network import Network
 from model.config import cfg
+
+
 
 factor1 = cfg.SCORE_FACTOR1
 factor2 = cfg.SCORE_FACTOR2
@@ -70,6 +73,15 @@ class vgg16(Network):
       else:
         initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
         initializer_bbox = tf.random_normal_initializer(mean=0.0, stddev=0.001)
+
+      batch_norm_params = {
+        'is_training': is_training,
+        'decay': 0.997,
+        'epsilon': 1e-5,
+        'scale': True,
+        'trainable': True,
+        'updates_collections': ops.GraphKeys.UPDATE_OPS
+      }
 
       net = slim.repeat(self._image, 2, slim.conv2d, 64, [3, 3],
                         trainable=False, scope='conv1')
@@ -180,7 +192,7 @@ class vgg16(Network):
       pool31_avg = slim.avg_pool2d(pool31_conv, [14, 14], padding='SAME', scope='pool31_avg', stride = 1)
       pool31_flat = slim.flatten(pool31_avg, scope='flatten31')
 
-      fc3_2 = slim.fully_connected(pool31_flat, 512, scope='fc3_2',  normalizer_fn=slim.batch_norm, trainable=is_training, biases_initializer = None, activation_fn = None)
+      fc3_2 = slim.fully_connected(pool31_flat, 512, scope='fc3_2', trainable=is_training, biases_initializer = None, normalizer_fn = slim.batch_norm, normalizer_params = batch_norm_params)
 
       # if is_training:
       #   fc3_2 = slim.dropout(fc3_2, keep_prob=0.5, is_training=True, scope='fc3_2')
@@ -234,7 +246,7 @@ class vgg16(Network):
       pool41_avg = slim.avg_pool2d(pool41_conv, [14, 14], padding='SAME', scope='pool41_avg', stride = 1)
       pool41_flat = slim.flatten(pool41_avg, scope='flatten41')
 
-      fc4_2 = slim.fully_connected(pool41_flat, 512, scope='fc4_2', normalizer_fn = slim.batch_norm, trainable=is_training, biases_initializer = None, activation_fn = None)
+      fc4_2 = slim.fully_connected(pool41_flat, 512, scope='fc4_2', trainable=is_training, biases_initializer = None, normalizer_fn = slim.batch_norm, normalizer_params = batch_norm_params)
 
       # if is_training:
       #   fc4_2 = slim.dropout(fc4_2, keep_prob=0.5, is_training=True, scope='fc4_2')
@@ -297,7 +309,7 @@ class vgg16(Network):
       pool51_avg = slim.avg_pool2d(pool51_conv, [7, 7], padding='SAME', scope='pool51_avg', stride = 1)
       pool51_flat = slim.flatten(pool51_avg, scope='flatten51')
 
-      fc5_2 = slim.fully_connected(pool51_flat, 512, scope='fc5_2', normalizer_fn = slim.batch_norm, trainable=is_training, biases_initializer = None, activation_fn = None)
+      fc5_2 = slim.fully_connected(pool51_flat, 512, scope='fc5_2', trainable=is_training, biases_initializer = None, normalizer_fn = slim.batch_norm, normalizer_params = batch_norm_params)
 
       # if is_training:
       #   fc5_2 = slim.dropout(fc5_2, keep_prob=0.5, is_training=True, scope='fc5_2')
@@ -365,9 +377,9 @@ class vgg16(Network):
       if is_training:
         fc7 = slim.dropout(fc7, keep_prob=0.5, is_training=True, scope='dropout7')
       cls0_score = slim.fully_connected(fc7, self._num_classes,
-                                       #weights_initializer=initializer,
-                                       weights_initializer=tf.random_normal_initializer(mean=0.0, stddev=0.002),
-                                       biases_initializer = None,
+                                       weights_initializer=initializer,
+                                       #weights_initializer=tf.random_normal_initializer(mean=0.0, stddev=0.002),
+                                       #biases_initializer = None,
                                        trainable=is_training,
                                        activation_fn=None, scope='cls0_score')
 
