@@ -163,20 +163,14 @@ class vgg16(Network):
       #------------------------------------------------------rcnn 2----------------------------------------------------#
 
       if cfg.POOLING_MODE == 'crop':
-        pool41 = self._crop_pool_layer(self.endpoint['conv4_3'], rois, 8, 14, "pool41")
+        pool41 = self._crop_pool_layer(self.endpoint['conv4_3'], rois, 8, 7, "pool41")
       else:
         raise NotImplementedError
 
-      pool41_conv = slim.conv2d(pool41, 256, [1, 1], trainable=is_training, weights_initializer=initializer, scope="pool41_conv")
-      pool41_avg = slim.avg_pool2d(pool41_conv, [14, 14], padding='SAME', scope='pool41_avg', stride = 1)
-      pool41_flat = slim.flatten(pool41_avg, scope='flatten41')
+      pool41_norm = tf.nn.l2_normalize(pool41, 3, 1e-12, 'pool41_norm')
+      pool41_norm = pool41_norm*10
 
-      fc4_2 = slim.fully_connected(pool41_flat, 512, scope='fc4_2', weights_initializer=tf.contrib.layers.xavier_initializer(), trainable=is_training)
-
-      cls4_score = slim.fully_connected(fc4_2, self._num_classes,
-                                       weights_initializer=initializer,
-                                       trainable=is_training,
-                                       activation_fn=None, scope='cls4_score')
+      # pool41_conv = slim.conv2d(pool41, 256, [1, 1], trainable=is_training, weights_initializer=initializer, scope="pool41_conv")
 
 
 
@@ -185,19 +179,29 @@ class vgg16(Network):
         self.endpoint['pool5'] = pool5
       else:
         raise NotImplementedError
-      
-      pool_flat = slim.flatten(pool5, scope='flatten')
 
-      fc6 = slim.fully_connected(pool_flat, 4096, scope='fc6')
+      pool5_norm = tf.nn.l2_normalize(pool5, 3, 1e-12, 'pool5_norm')
+      pool5_norm = pool5_norm*10
+
+      pool_concat = tf.concat([pool41_norm, pool5_norm], 3, 'pool_concat')
+      self.endpoint['pool_concat'] = pool_concat
+
+      # pool_concat_deconv = slim.conv2d(pool_concat, 512, [1, 1], trainable=is_training, weights_initializer=initializer, scope="pool_concat_deconv")
+      # pool_norm = tf.nn.l2_normalize(pool_concat_deconv, 3, 1e-12, 'pool_norm')
+      # pool_norm = pool_norm*10
+      
+      pool_flat = slim.flatten(pool_concat, scope='flatten')
+
+      fc6 = slim.fully_connected(pool_flat, 4096, scope='fc6_1', weights_initializer=initializer)
       if is_training:
         fc6 = slim.dropout(fc6, keep_prob=0.5, is_training=True, scope='dropout6')
       fc7 = slim.fully_connected(fc6, 4096, scope='fc7')
       if is_training:
         fc7 = slim.dropout(fc7, keep_prob=0.5, is_training=True, scope='dropout7')
-      cls5_score = slim.fully_connected(fc7, self._num_classes,
+      cls_score = slim.fully_connected(fc7, self._num_classes,
                                        weights_initializer=initializer,
                                        trainable=is_training,
-                                       activation_fn=None, scope='cls5_score')
+                                       activation_fn=None, scope='cls_score')
 
 
       cls_prob = self._softmax_layer(cls_score, "cls_prob")
@@ -205,8 +209,6 @@ class vgg16(Network):
                                        weights_initializer=initializer_bbox,
                                        trainable=is_training,
                                        activation_fn=None, scope='bbox_pred')
-
-      cls_score = tf.add(cls5_score*0.6, cls4_score*0.4, "cls_score")
 
       cls_prob = self._softmax_layer(cls_score, "cls_prob")
 
@@ -258,16 +260,23 @@ class vgg16(Network):
       with tf.device("/cpu:0"):
         # fix the vgg16 issue from conv weights to fc weights
         # fix RGB to BGR
-        fc6_conv = tf.get_variable("fc6_conv", [7, 7, 512, 4096], trainable=False)
+
+        # comment this as I reshape fc6
+        # fc6_conv = tf.get_variable("fc6_conv", [7, 7, 512, 4096], trainable=False)
+
         fc7_conv = tf.get_variable("fc7_conv", [1, 1, 4096, 4096], trainable=False)
         conv1_rgb = tf.get_variable("conv1_rgb", [3, 3, 3, 64], trainable=False)
-        restorer_fc = tf.train.Saver({"vgg_16/fc6/weights": fc6_conv, 
+        restorer_fc = tf.train.Saver({ 
+                                      #comment this as I reshape fc6
+                                      #"vgg_16/fc6/weights": fc6_conv, 
                                       "vgg_16/fc7/weights": fc7_conv,
                                       "vgg_16/conv1/conv1_1/weights": conv1_rgb})
         restorer_fc.restore(sess, pretrained_model)
 
-        sess.run(tf.assign(self._variables_to_fix['vgg_16/fc6/weights:0'], tf.reshape(fc6_conv, 
-                            self._variables_to_fix['vgg_16/fc6/weights:0'].get_shape())))
+        # comment this as I reshape fc6
+        # sess.run(tf.assign(self._variables_to_fix['vgg_16/fc6/weights:0'], tf.reshape(fc6_conv, 
+        #                     self._variables_to_fix['vgg_16/fc6/weights:0'].get_shape())))
+        
         sess.run(tf.assign(self._variables_to_fix['vgg_16/fc7/weights:0'], tf.reshape(fc7_conv, 
                             self._variables_to_fix['vgg_16/fc7/weights:0'].get_shape())))
         sess.run(tf.assign(self._variables_to_fix['vgg_16/conv1/conv1_1/weights:0'], 
