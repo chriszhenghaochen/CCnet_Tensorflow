@@ -190,7 +190,7 @@ class vgg16(Network):
       pool_norm = tf.nn.l2_normalize(pool_concat_deconv, 3, 1e-12, 'pool_norm')
       pool_norm = pool_norm*10
       
-      pool_flat = slim.flatten(pool_concat, scope='flatten')
+      pool_flat = slim.flatten(pool_norm, scope='flatten')
 
       fc6 = slim.fully_connected(pool_flat, 4096, scope='fc6', weights_initializer=initializer)
       if is_training:
