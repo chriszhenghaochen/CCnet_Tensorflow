@@ -191,7 +191,7 @@ class vgg16(Network):
       
       pool_flat = slim.flatten(pool_concat, scope='flatten')
 
-      fc6 = slim.fully_connected(pool_flat, 4096, scope='fc6_1', trainable = False)
+      fc6 = slim.fully_connected(pool_flat, 4096, scope='fc6_1', trainable = is_training)
       self._predictions['fc6'] = fc6
 
       if is_training:
@@ -242,7 +242,7 @@ class vgg16(Network):
 
     for v in variables:
       # exclude the conv weights that are fc weights in vgg16
-      if v.name == 'vgg_16/fc6_1/weights:0' or v.name == 'vgg_16/fc7/weights:0':
+      if v.name == 'vgg_16/fc6_1/weights:0' or v.name == 'vgg_16/fc6_1/biases:0' or v.name == 'vgg_16/fc7/weights:0':
         self._variables_to_fix[v.name] = v
         continue
       # exclude the first conv layer to swap RGB to BGR
@@ -262,24 +262,30 @@ class vgg16(Network):
         # fix the vgg16 issue from conv weights to fc weights
         # fix RGB to BGR
 
-        # comment this as I reshape fc6
+        #update conv and bias into that
         fc6_conv = tf.get_variable("fc6_conv", [7, 7, 512, 4096], trainable=False)
+        fc6_bias = tf.get_variable("fc6_bias", [4096], trainable=False)
 
         fc7_conv = tf.get_variable("fc7_conv", [1, 1, 4096, 4096], trainable=False)
         conv1_rgb = tf.get_variable("conv1_rgb", [3, 3, 3, 64], trainable=False)
         restorer_fc = tf.train.Saver({ 
                                       #comment this as I reshape fc6
-                                      "vgg_16/fc6/weights": fc6_conv, 
+                                      "vgg_16/fc6/weights": fc6_conv,
+                                      "vgg_16/fc6/biases": fc6_bias,
                                       "vgg_16/fc7/weights": fc7_conv,
                                       "vgg_16/conv1/conv1_1/weights": conv1_rgb})
         restorer_fc.restore(sess, pretrained_model)
 
         #duplicate the fc6 [7,7,512,4096] to fc6_1 [7,7,1024,4096] 
-        fc6_1_conv = tf.tile(fc6_conv, [1,1,2,1], "fc6_1_conv")
+        fc6_1_conv = tf.tile(fc6_conv, [1, 1, 2, 1], "fc6_1_conv")
 
-        # assign fc6_1 parameter
+        # assign fc6_1 weight
         sess.run(tf.assign(self._variables_to_fix['vgg_16/fc6_1/weights:0'], tf.reshape(fc6_1_conv, 
                             self._variables_to_fix['vgg_16/fc6_1/weights:0'].get_shape())))
+
+        # assign fc6_1 variable
+        sess.run(tf.assign(self._variables_to_fix['vgg_16/fc6_1/biases:0'], tf.reshape(fc6_bias, 
+                            self._variables_to_fix['vgg_16/fc6_1/biases:0'].get_shape())))
 
         
         sess.run(tf.assign(self._variables_to_fix['vgg_16/fc7/weights:0'], tf.reshape(fc7_conv, 
