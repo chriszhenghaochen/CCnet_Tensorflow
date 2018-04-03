@@ -170,8 +170,8 @@ class vgg16(Network):
       pool41_avg = slim.avg_pool2d(pool41, [7, 7], padding='SAME', scope='pool41_avg', stride = 1) 
       pool41_flat = slim.flatten(pool41_avg, scope='flatten41')
 
-      pool41_scale = self.scale(pool41_flat, 0.05, 'pool41_scale', is_training)
-      #pool41_norm = self.normalize_to_target(pool41_flat, 10.0, 1, 'pool41_norm')
+      #pool41_scale = self.scale(pool41_flat, 0.001, 'pool41_scale', is_training)
+      pool41_norm = self.normalize_to_target(pool41_flat, 1.0, 1, 'pool41_norm')
 
 
 
@@ -183,8 +183,9 @@ class vgg16(Network):
 
       pool_avg = slim.avg_pool2d(pool5, [7, 7], padding='SAME', scope='pool_avg', stride = 1) 
       pool_avg_flat = slim.flatten(pool_avg, scope='pool_avg_flat')
-      pool_scale = self.scale(pool_avg_flat, 0.05, 'pool_scale', is_training)
-      #pool_norm = self.normalize_to_target(pool_avg_flat, 10.0, 1, 'pool_norm')
+      #pool_scale = self.scale(pool_avg_flat, 0.01, 'pool_scale', is_training)
+      pool_norm = self.normalize_to_target(pool_avg_flat, 1.0, 1, 'pool_norm')
+
 
       pool_flat = slim.flatten(pool5, scope='flatten')
 
@@ -196,20 +197,21 @@ class vgg16(Network):
         fc7 = slim.dropout(fc7, keep_prob=0.5, is_training=True, scope='dropout7')
 
       self._predictions['fc7'] = fc7    
-      self._predictions['p4_f'] = pool41_flat
-      self._predictions['p5_f'] = pool_avg_flat 
+      # self._predictions['p4_f'] = pool41_flat
+      # self._predictions['p5_f'] = pool_avg_flat 
+
       fc7_scale = self.scale(fc7, 1.0, 'fc7_scale', is_training)
       # fc7_norm = self.normalize_to_target(fc7, 10.0, 1, 'fc7_norm')
 
-      fc7_concat = tf.concat([fc7_scale, pool_scale, pool41_scale], 1, 'fc7_concat')
+      fc7_concat = tf.concat([fc7_scale, pool_norm, pool41_norm], 1, 'fc7_concat')
 
-      cls_score = slim.fully_connected(fc7, self._num_classes,
+      cls_score = slim.fully_connected(fc7_concat, self._num_classes,
                                        weights_initializer=initializer,
                                        trainable=is_training,
                                        activation_fn=None, scope='cls_score')
 
 
-      bbox_pred = slim.fully_connected(fc7, self._num_classes * 4,
+      bbox_pred = slim.fully_connected(fc7_concat, self._num_classes * 4,
                                        weights_initializer=initializer_bbox,
                                        trainable=is_training,
                                        activation_fn=None, scope='bbox_pred')

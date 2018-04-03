@@ -222,10 +222,18 @@ class SolverWrapper(object):
       now = time.time()
 
       # #debug session
-      # a, b, c = self.net.DEBUG(sess, blobs)
-      # print('fc7 ', np.amax(a,1))
-      # print('pool4 ', np.amax(c,1))
-      # print('pool5 ', np.amax(b,1))
+      # a = self.net.DEBUG(sess, blobs)
+
+
+      # # if iter%10 ==0:
+
+      # print('fc7 mean', np.average(a,1))
+      # print('pool4 mean', np.average(c,1))
+      # print('pool5 mean', np.average(b,1))
+
+      # print('fc7 max', np.max(a,1))
+      # print('pool4 max', np.max(c,1))
+      # print('pool5 max', np.max(b,1))
 
 
 
