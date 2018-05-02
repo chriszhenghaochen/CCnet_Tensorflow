@@ -182,7 +182,7 @@ class Network(object):
                                   pooled_width=cfg.POOLING_SIZE,
                                   spatial_scale=1. / 16.)[0]
 
-  def _crop_pool_layer(self, bottom, rois, feat_stride, pool_size, name):
+  def _crop_pool_layer(self, bottom, rois, name):
     with tf.variable_scope(name) as scope:
       batch_ids = tf.squeeze(tf.slice(rois, [0, 0], [-1, 1], name="batch_id"), [1])
 
@@ -190,15 +190,15 @@ class Network(object):
 
       # Get the normalized coordinates of bboxes
       bottom_shape = tf.shape(bottom)
-      height = (tf.to_float(bottom_shape[1]) - 1.) * np.float32(feat_stride)
-      width = (tf.to_float(bottom_shape[2]) - 1.) * np.float32(feat_stride)
+      height = (tf.to_float(bottom_shape[1]) - 1.) * np.float32(self._feat_stride[0])
+      width = (tf.to_float(bottom_shape[2]) - 1.) * np.float32(self._feat_stride[0])
       x1 = tf.slice(rois, [0, 1], [-1, 1], name="x1") / width
       y1 = tf.slice(rois, [0, 2], [-1, 1], name="y1") / height
       x2 = tf.slice(rois, [0, 3], [-1, 1], name="x2") / width
       y2 = tf.slice(rois, [0, 4], [-1, 1], name="y2") / height
       # Won't be backpropagated to rois anyway, but to save time
       bboxes = tf.stop_gradient(tf.concat([y1, x1, y2, x2], axis=1))
-      pre_pool_size = pool_size * 2
+      pre_pool_size = cfg.POOLING_SIZE * 2
       crops = tf.image.crop_and_resize(bottom, bboxes, tf.to_int32(batch_ids), [pre_pool_size, pre_pool_size], name=name + "crops")
 
     return slim.max_pool2d(crops, [2, 2], padding='SAME')
@@ -343,11 +343,10 @@ class Network(object):
                  self._gt_boxes: blobs['gt_boxes']}
 
 
-    b1,b2,b3,b4 = sess.run([self._predictions['height'],
-                    self._predictions['width'],
-                    self._predictions['bboxes'],
-                    self._predictions['rois_d']
-                   ],
+    b1,b2,b3,b4 = sess.run([self._predictions['cls3_score'],
+                    self._predictions['size'],
+                    self._predictions['factor'],
+                    self._predictions['add']],
                       feed_dict=feed_dict)
 
     return b1,b2,b3,b4
@@ -545,7 +544,7 @@ class Network(object):
       label3 = tf.reshape(self._proposal_targets["rpn3_rois_labels"], [-1])
 
       if repeat:
-        cls3_score, label3 = self.repeat(cls3_score, label3, batch3, True)
+        cls_score3, label3 = self.repeat(cls_score3, label3, batch3, True)
 
       cross_entropy3 = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -557,7 +556,7 @@ class Network(object):
       label2 = tf.reshape(self._proposal_targets["rpn2_rois_labels"], [-1])
 
       if repeat:
-        cls2_score, label2 = self.repeat(cls2_score, label2, batch2, True)
+        cls_score2, label2 = self.repeat(cls_score2, label2, batch2, True)
 
       cross_entropy2 = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -569,7 +568,7 @@ class Network(object):
       label1 = tf.reshape(self._proposal_targets["rpn1_rois_labels"], [-1])
 
       if repeat:
-        cls1_score, label1 = self.repeat(cls1_score, label1, batch1, True)
+        cls_score1, label1 = self.repeat(cls_score1, label1, batch1, True)
 
       cross_entropy1 = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -628,7 +627,7 @@ class Network(object):
 
 
       #total loss
-      loss = cross_entropy + cross_entropy0*0.1 + loss_box + rpn_cross_entropy + rpn0_cross_entropy*0.1 + rpn_loss_box + cross_entropy1*0.01 + cross_entropy2*0.001 + cross_entropy3*0.0001 + rpn1_cross_entropy*0.01 + rpn2_cross_entropy*0.001+ rpn3_cross_entropy*0.0001
+      loss = cross_entropy + cross_entropy0*0.1 + loss_box + rpn_cross_entropy + rpn0_cross_entropy*0.1 + rpn_loss_box + cross_entropy1*0.01 + cross_entropy2*0.001 + cross_entropy3*0.0001 + rpn1_cross_entropy*0.01 + rpn2_cross_entropy*0.001 + rpn3_cross_entropy*0.0001
 
 
       self._losses['total_loss'] = loss
